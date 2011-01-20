@@ -2,12 +2,25 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+
+	<modelVersion>4.0.0</modelVersion>
 
     <groupId>org.bukkit.plugin</groupId>
     <artifactId>GroovyBukkit</artifactId>
     <version>0.1-SNAPSHOT</version>
 
+	<repositories>
+		<!-- specify where to find bukkit artifacts -->
+		<repository>
+			<id>bukkut-repo</id>
+			<url>http://artifacts.lukegb.com/artifactory/repo</url>
+		</repository>
+		<!-- specify where to find groovy artifacts -->
+		<repository>
+			<id>codehaus.org</id>
+			<url>http://repository.codehaus.org/org/codehaus/groovy</url>
+		</repository>
+	</repositories>
 
 	<dependencies>
 		<dependency>
@@ -29,17 +42,11 @@
 			<artifactId>gmaven-runtime-1.7</artifactId>
 			<version>1.3</version>
 		</dependency>
-
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>3.8.1</version>
-			<scope>test</scope>
-		</dependency>
 	</dependencies>
 
 	<build>
 		<plugins>
+			<!-- Compile Groovy code -->
 			<plugin>
 				<groupId>org.codehaus.groovy.maven</groupId>
 				<artifactId>gmaven-plugin</artifactId>
@@ -55,6 +62,7 @@
 					</execution>
 				</executions>
 			</plugin>
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -67,11 +75,4 @@
 		</plugins>
 	</build>
 
-
-	<repositories>
-		<repository>
-			<id>codehaus.org</id>
-			<url>http://repository.codehaus.org/org/codehaus/groovy</url>
-		</repository>
-	</repositories>
 </project>
