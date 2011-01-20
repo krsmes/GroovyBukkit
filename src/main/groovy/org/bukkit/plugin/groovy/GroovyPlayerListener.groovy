@@ -14,9 +14,12 @@ import org.bukkit.util.Vector
 public class GroovyPlayerListener extends PlayerListener
 {
 	static Logger log = Logger.getLogger("Minecraft")
-	GroovyPlugin plugin
 
-	def _playerData = [:]
+	static SCRIPT_PREFIX = """
+import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import org.bukkit.inventory.*;import org.bukkit.material.*;import org.bukkit.util.*;
+"""
+
+	GroovyPlugin plugin
 
 
 	GroovyPlayerListener(GroovyPlugin instance) {
@@ -38,6 +41,10 @@ public class GroovyPlayerListener extends PlayerListener
 	}
 
 
+//
+// commands
+//
+
 	def g = { def command, Player player ->
 		def result = runScript(player, command[1..-1].join(' '))
 		if (player) {
@@ -46,7 +53,7 @@ public class GroovyPlayerListener extends PlayerListener
 	}
 
 	def gg = { def command, Player player ->
-		def scriptLoc = getPlayerVariable(player, 'scripts')
+		def scriptLoc = plugin.getPlayerVariable(player, 'scripts')
 		if (!scriptLoc) {
 			scriptLoc = 'scripts/'
 		}
@@ -60,30 +67,11 @@ public class GroovyPlayerListener extends PlayerListener
 // helper functions
 //
 
-	def setPlayerVariable = { Player player, def name, def value ->
-		getPlayerData(player)."$name" = value
-	}
-
-	def getPlayerVariable = { Player player, def name ->
-		getPlayerData(player)."$name"
-	}
-
-	def getPlayerData = { Player player ->
-		def name = player.name
-		def result = _playerData[name]
-		if (!result) {
-			result = [:]
-			_playerData[name] = result
-		}
-		result
-	}
-
-
 
 
 	def runScript = { Player p, String script ->
 		log.info("Executing script: $script")
-		run(p, 'import org.bukkit.*;'+script)
+		run(p, SCRIPT_PREFIX+script)
 	}
 
 	def runFile = { Player p, String scriptName, def args ->
@@ -141,7 +129,8 @@ public class GroovyPlayerListener extends PlayerListener
 
 		context.setVariable('p', p)
 		if (p) {
-			context.setVariable('data', getPlayerData(p))
+			context.setVariable('global', plugin.globalData)
+			context.setVariable('data', plugin.getPlayerData(p))
 			def world = p.world
 			context.setVariable('w', world)
 
@@ -168,8 +157,6 @@ public class GroovyPlayerListener extends PlayerListener
 			context.setVariable('b', world.getBlockAt(x, y, z))
 			context.setVariable('highy', world.getHighestBlockYAt(x, z))
 			context.setVariable('yb', (0..128).collect {world.getBlockAt(x,it,z)})
-			context.setVariable('bfwd', world.getBlockAt(x+facing.modX, y+facing.modY, z+facing.modZ))
-
 		}
 		context.setVariable('plugin', plugin)
 		shell

@@ -13,6 +13,7 @@ import org.bukkit.event.entity.EntityListener
 import org.bukkit.event.vehicle.VehicleListener
 import org.bukkit.event.world.WorldListener
 import org.bukkit.event.server.ServerListener
+import org.bukkit.entity.Player
 
 
 class GroovyPlugin extends JavaPlugin
@@ -20,6 +21,10 @@ class GroovyPlugin extends JavaPlugin
 	static Logger log = Logger.getLogger("Minecraft")
 
 	def playerListener = new GroovyPlayerListener(this)
+
+	def _playerData = [:]
+
+	def globalData = [:]
 
 
 	GroovyPlugin(PluginLoader pluginLoader, Server instance, PluginDescriptionFile desc, File folder, File plugin, ClassLoader cLoader) {
@@ -43,38 +48,77 @@ class GroovyPlugin extends JavaPlugin
 	}
 
 
+	def setPlayerVariable = { Player player, def name, def value ->
+		getPlayerData(player)."$name" = value
+	}
 
-	def register(Map listener, def priority = Priority.Normal) {
+	def getPlayerVariable = { Player player, def name ->
+		getPlayerData(player)."$name"
+	}
+
+	def getPlayerData = { Player player ->
+		def name = player.name
+		def result = _playerData[name]
+		if (!result) {
+			result = [:]
+			_playerData[name] = result
+		}
+		result
+	}
+
+
+
+	def register(String uniqueName, Map listener, Event.Priority priority = Priority.Normal) {
+		def registered = globalData[uniqueName]
+		if (registered) {
+			registered.each { server.pluginManager.unregisterEvent(it) }
+		}
+		registered = []
+
 		Event.Type.values().each { type ->
 			def methodName = type.toString()
 			methodName = 'on' + methodName.split('_').collect {it.toLowerCase().capitalize()}.join('')
 			if (listener."$methodName") {
-				log.info("registering event listener $type for $methodName")
+				def typedListener
 				switch (type.category) {
 					case Event.Category.PLAYER :
-						server.pluginManager.registerEvent(type, listener as PlayerListener, priority, this)
+						typedListener = listener as PlayerListener
 						break
 					case Event.Category.BLOCK:
-						server.pluginManager.registerEvent(type, listener as BlockListener, priority, this)
+						typedListener = listener as BlockListener
 						break
 					case Event.Category.LIVING_ENTITY:
-						server.pluginManager.registerEvent(type, listener as EntityListener, priority, this)
+						typedListener = listener as EntityListener
 						break
 					case Event.Category.VEHICLE:
-						server.pluginManager.registerEvent(type, listener as VehicleListener, priority, this)
+						typedListener = listener as VehicleListener
 						break
 					case Event.Category.WORLD:
-						server.pluginManager.registerEvent(type, listener as WorldListener, priority, this)
+						typedListener = listener as WorldListener
 						break
 					case Event.Category.SERVER:
-						server.pluginManager.registerEvent(type, listener as ServerListener, priority, this)
+						typedListener = listener as ServerListener
 						break
+				}
+
+				if (typedListener) {
+					log.info("Registering GroovyBukkit event listener $type for $methodName")
+					registered << server.pluginManager.registerEvent(type, typedListener, priority, this)
 				}
 			}
 		}
+
+		globalData[uniqueName] = registered
 	}
 
 
+	def unregister(String uniqueName) {
+		def registered = globalData[uniqueName]
+		if (registered) {
+			registered.each { server.pluginManager.unregisterEvent(it) }
+		}
+		globalData.remove(uniqueName)
+	}
 
 
 }
