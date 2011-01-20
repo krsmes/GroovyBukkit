@@ -40,9 +40,11 @@ Using
 Within the Minecraft client use the commands /g and /gg
 
 * /g - allows you to run a piece of inline groovy script:
+
 	/g s.time
 
 * /gg - allows you to run script from the scripts/ directory:
+
 	/gg morning
 
 The scripts must in the scripts/ directory must have a .groovy extension.
@@ -85,7 +87,7 @@ And some methods are available via the plugin variable:
 
 If you add a 'scripts' entry to the user 'data' map it will be used as the
 location to find scripts to run (if it is not set, scripts are assumed to be
-in the scripts/ directory from under where the server was started.
+in the scripts/ directory from under where the server was started).
 
 	/g data.scripts='/path/to/my/scripts'
 
