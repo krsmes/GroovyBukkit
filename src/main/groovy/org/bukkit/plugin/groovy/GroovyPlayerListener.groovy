@@ -142,7 +142,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 			if (yaw < 0) yaw += 360
 			context.setVariable('yaw', yaw)
 			BlockFace facing = yaw <= 25 ? BlockFace.WEST : yaw < 65 ? BlockFace.NORTH_WEST : yaw <= 115 ? BlockFace.NORTH : yaw < 155 ? BlockFace.NORTH_EAST : yaw <= 205 ? BlockFace.EAST : yaw < 245 ? BlockFace.SOUTH_EAST : yaw <= 315 ? BlockFace.SOUTH : yaw < 335 ? BlockFace.SOUTH_WEST : BlockFace.WEST
-			context.setVariable('facing', facing)
+			context.setVariable('f', facing)
 
 			Vector vector = new Vector(location.x, location.y-1.0, location.z)
 			context.setVariable('v', vector)
@@ -155,10 +155,10 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 			context.setVariable('z', z)
 
 			context.setVariable('b', world.getBlockAt(x, y, z))
-			context.setVariable('highy', world.getHighestBlockYAt(x, z))
-			context.setVariable('yb', (0..128).collect {world.getBlockAt(x,it,z)})
+			context.setVariable('highY', world.getHighestBlockYAt(x, z))
+			context.setVariable('bY', (0..128).collect {world.getBlockAt(x,it,z)})
 		}
-		context.setVariable('plugin', plugin)
+		context.setVariable('g', plugin)
 		shell
 	}
 

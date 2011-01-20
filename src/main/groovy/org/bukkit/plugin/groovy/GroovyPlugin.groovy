@@ -14,6 +14,8 @@ import org.bukkit.event.vehicle.VehicleListener
 import org.bukkit.event.world.WorldListener
 import org.bukkit.event.server.ServerListener
 import org.bukkit.entity.Player
+import org.bukkit.Location
+import org.bukkit.World
 
 
 class GroovyPlugin extends JavaPlugin
@@ -66,6 +68,19 @@ class GroovyPlugin extends JavaPlugin
 		result
 	}
 
+
+	def loc(World w, def x, def y, def z) {
+		new Location(w, x as double, y as double, z as double)
+	}
+
+	def loc(World w, def x, def z) {
+		new Location(w, x as double, w.getHighestBlockYAt((int)x,(int)z), z as double)
+	}
+
+
+	def register(String methodName, Closure c) {
+		register(methodName, [(methodName): c])
+	}
 
 
 	def register(String uniqueName, Map listener, Event.Priority priority = Priority.Normal) {

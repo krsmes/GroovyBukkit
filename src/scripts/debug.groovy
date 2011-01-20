@@ -12,5 +12,5 @@ log.info("x=$x")  // blockX (int)
 log.info("y=$y")  // blockY (int)
 log.info("z=$z")  // blockZ (int)
 log.info("b=$b")  // block player is standing on
-log.info("highy=$highy")  // highest y for the x/z of player's location
-log.info("yb=...")  // list (0..128) of the entire column of block for the player's location
+log.info("highY=$highY")  // highest y for the x/z of player's location
+//log.info("bY=...")  // list (0..128) of the entire column of block for the player's location
