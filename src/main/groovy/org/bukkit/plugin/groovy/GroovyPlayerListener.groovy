@@ -25,12 +25,6 @@ public class GroovyPlayerListener extends PlayerListener
 
 
 	@Override
-	void onPlayerJoin(PlayerEvent event) {
-		log.info("${event.player.name} joined the groovy server! :D");
-	}
-
-
-	@Override
 	void onPlayerCommand(PlayerChatEvent event) {
 		def command = event.message.split(' ').toList()
 		Player player = event.player
@@ -41,37 +35,6 @@ public class GroovyPlayerListener extends PlayerListener
 			event.cancelled = true
 		}
 		catch (e) {}
-	}
-
-
-
-
-	def pos = { def command, Player player ->
-		if (command.size() == 1) {
-			Location location = player.location
-			def x = (int) location.x
-			def y = (int) location.y - 1
-			def z = (int) location.z
-			if (x < 0) x--
-			if (z < 0) z--
-
-			player.sendMessage("$x, $y, $z; yaw=${(int)location.yaw}, pitch=${(int)location.pitch}")
-		}
-		else if (command.size() == 4) {
-			try {
-				double x = Double.parseDouble(command[1])
-				double y = Double.parseDouble(command[2])
-				double z = Double.parseDouble(command[3])
-
-				player.teleportTo(new Location(player.world, x, y, z))
-			}
-			catch (NumberFormatException ex) {
-				player.sendMessage("Given location is invalid")
-			}
-		}
-		else {
-			player.sendMessage("Usage: '/pos' to get current position, or '/pos x y z' to teleport to x,y,z")
-		}
 	}
 
 
