@@ -13,6 +13,9 @@ Maven to handle dependencies.
 
 	mvn clean package
 
+Note: at the moment this plugin uses a fork of Bukkit to allow unregistering of listeners.  For it
+to work properly Bukkit should be built from the 'all' branch of https://github.com/krsmes/Bukkit
+
 
 Installation
 ------------
