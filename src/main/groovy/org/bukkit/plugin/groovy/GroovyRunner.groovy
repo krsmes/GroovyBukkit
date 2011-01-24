@@ -16,6 +16,7 @@ import org.bukkit.event.vehicle.VehicleListener
 import org.bukkit.event.world.WorldListener
 import org.bukkit.event.server.ServerListener
 import org.bukkit.Material
+import org.bukkit.DyeColor
 
 
 
@@ -95,7 +96,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 				result = e.message
 			}
 		}
-		result ? result.toString() : null
+		result
 	}
 
 
@@ -130,10 +131,11 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		def yaw = location.yaw % 360
 		if (yaw < 0) yaw += 360
 		vars.yaw = yaw
-		vars.f = facing(yaw)
+		def facing = facing(yaw)
+		vars.f = facing
 
 		Vector vector = new Vector(location.x, location.y-1.0, location.z)
-				vars.v = vector
+		vars.v = vector
 
 		def x = vector.blockX
 		def y = vector.blockY
@@ -155,6 +157,10 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 // helper methods
 //
 
+	def wool(def color, int qty = 1) {
+		new ItemStack(Material.WOOL, qty, (byte)0, color instanceof Number ? (byte)color : DyeColor."${color.toString().toUpperCase().replaceAll(/[\s\.\-]/, '_')}".data)
+	}
+
 
 	def stack(def item) {
 		stack(item, 1)
@@ -162,11 +168,12 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
 	def stack(def item, int qty) {
-		item instanceof ItemStack ? item : new ItemStack(m(item), qty)
+		item = item instanceof ItemStack ? item : new ItemStack(m(item))
+		if (qty > item.amount) item.amount = qty
+		item
 	}
 
 	def m(def m) {
-		log.info("$m (${m.class})")
 		m instanceof Material ? m : m instanceof Integer ? Material.getMaterial((int)m) : Material.getMaterial(m.toString().toUpperCase().replaceAll(/[\s\.\-]/, '_'))
 	}
 
@@ -177,11 +184,18 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
 	def give(def item, int qty = 1) {
-		player.inventory.addItem(stack(item, qty))
+		give(player, item, qty)
 	}
 
 	def give(Player p, def item, int qty = 1) {
-		p.inventory.addItem(stack(item, qty))
+		def inventory = player.inventory
+		def stac = stack(item, qty)
+		if (stac.type == Material.WOOL || stac.type == Material.INK_SACK) {
+			inventory.setItem(inventory.firstEmpty(), stack(item, qty))
+		}
+		else {
+			inventory.addItem(stack(item, qty))
+		}
 	}
 
 

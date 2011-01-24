@@ -71,20 +71,26 @@ Being a dynamic language (with open access to all protected and private data) sc
 can easily be written to get to almost anywhere in the minecraft/craftbukkit code.
 Some entry points have been made available to scripts:
 
-	p -- the current player (org.bukkit.player.Player)
-	l -- the current player's location (org.bukkit.Location)
-	v -- the current player's vector (org.bukkit.util.Vector)
-	x, y, z -- the current player integer/block location
-	f -- the direction the current player is facing (org.bukkit.block.BlockFace)
-	s -- the server (org.bukkit.Server)
-	w -- the world (org.bukkit.World)
-
-	g -- the GroovyBukkit script runner instance
-
-	highY -- the y of the highest block for the players x/z location
-	bY -- a list of vertical blocks at the players location (0..128)
+	log -- a java.util.logging.Logger instance for 'Minecraft'
 	data -- a map of data specific to the user (persists across commands until server restart)
 	global -- a map of data global to all users (persists until server restart)
+	g -- the GroovyBukkit script runner instance
+	s -- the server (org.bukkit.Server)
+	w -- the world (org.bukkit.World)
+	p -- the current player (org.bukkit.player.Player)
+	spawn -- the world's spawn location (org.bukkit.Location)
+
+	l -- the current player's location (org.bukkit.Location)
+	pitch -- the current players pitch (-90..90)
+	yaw -- the current players yaw (normalized to 0..359)
+	f -- the direction the current player is facing (org.bukkit.block.BlockFace)
+	v -- the current player's vector (org.bukkit.util.Vector)
+	x, y, z -- the current player integer/block location
+
+	b -- the block under the player
+	bFwd -- the block forward of b (in the direction the player is facing)
+	highY -- the y of the highest block for the players x/z location
+	bY -- a list of vertical blocks at the players location (0..128)
 
 And some custom methods are available for use:
 

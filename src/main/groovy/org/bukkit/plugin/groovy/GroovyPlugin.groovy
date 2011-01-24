@@ -46,7 +46,7 @@ class GroovyPlugin extends JavaPlugin
 	boolean onCommand(Player player, Command cmd, String commandLabel, String[] args) {
 		try {
 			def result = "command_${cmd.name}"(player, getPlayerData(player), args?.toList())
-			if (result) player.sendMessage result
+			if (result) player.sendMessage result.toString()
 			return true
 		}
 		catch (e) {
