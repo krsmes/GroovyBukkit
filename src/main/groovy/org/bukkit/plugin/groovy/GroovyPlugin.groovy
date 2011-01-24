@@ -16,22 +16,20 @@ import org.bukkit.event.server.ServerListener
 import org.bukkit.entity.Player
 import org.bukkit.Location
 import org.bukkit.World
+import org.bukkit.command.Command
+import org.bukkit.inventory.ItemStack
 
 
 class GroovyPlugin extends JavaPlugin
 {
 	static Logger log = Logger.getLogger("Minecraft")
 
-	def playerListener = new GroovyPlayerListener(this)
-
 	def _playerData = [:]
-
 	def globalData = [:]
 
 
 	GroovyPlugin(PluginLoader pluginLoader, Server instance, PluginDescriptionFile desc, File folder, File plugin, ClassLoader cLoader) {
 		super(pluginLoader, instance, desc, folder, plugin, cLoader)
-		registerEvents()
 	}
 
 
@@ -45,18 +43,37 @@ class GroovyPlugin extends JavaPlugin
 	}
 
 
-	void registerEvents() {
-		server.pluginManager.registerEvent(Event.Type.PLAYER_COMMAND, playerListener, Priority.Normal, this);
+	boolean onCommand(Player player, Command cmd, String commandLabel, String[] args) {
+		try {
+			def result = "command_${cmd.name}"(player, getPlayerData(player), args?.toList())
+			if (result) player.sendMessage result
+			return true
+		}
+		catch (e) {
+			player.sendMessage e.message
+			log.severe(e.message)
+		}
+		return false
 	}
 
 
-	def setPlayerVariable = { Player player, def name, def value ->
-		getPlayerData(player)."$name" = value
+//
+// commands
+//
+
+	def command_g = { Player player, def data, def args ->
+		def runner = data.runner
+		if (!runner) {
+			runner = new GroovyRunner(this, player, data)
+			data.runner = runner
+		}
+		runner.runScript(args.join(' '))
 	}
 
-	def getPlayerVariable = { Player player, def name ->
-		getPlayerData(player)."$name"
-	}
+
+//
+// data
+//
 
 	def getPlayerData = { Player player ->
 		def name = player.name
@@ -66,73 +83,6 @@ class GroovyPlugin extends JavaPlugin
 			_playerData[name] = result
 		}
 		result
-	}
-
-
-	def loc(World w, def x, def y, def z) {
-		new Location(w, x as double, y as double, z as double)
-	}
-
-	def loc(World w, def x, def z) {
-		new Location(w, x as double, w.getHighestBlockYAt((int)x,(int)z), z as double)
-	}
-
-
-	def register(String methodName, Closure c) {
-		register(methodName, [(methodName): c])
-	}
-
-
-	def register(String uniqueName, Map listener, Event.Priority priority = Priority.Normal) {
-		def registered = globalData[uniqueName]
-		if (registered) {
-			registered.each { server.pluginManager.unregisterEvent(it) }
-		}
-		registered = []
-
-		Event.Type.values().each { type ->
-			def methodName = type.toString()
-			methodName = 'on' + methodName.split('_').collect {it.toLowerCase().capitalize()}.join('')
-			if (listener."$methodName") {
-				def typedListener
-				switch (type.category) {
-					case Event.Category.PLAYER :
-						typedListener = listener as PlayerListener
-						break
-					case Event.Category.BLOCK:
-						typedListener = listener as BlockListener
-						break
-					case Event.Category.LIVING_ENTITY:
-						typedListener = listener as EntityListener
-						break
-					case Event.Category.VEHICLE:
-						typedListener = listener as VehicleListener
-						break
-					case Event.Category.WORLD:
-						typedListener = listener as WorldListener
-						break
-					case Event.Category.SERVER:
-						typedListener = listener as ServerListener
-						break
-				}
-
-				if (typedListener) {
-					log.info("Registering GroovyBukkit event listener $type for $methodName")
-					registered << server.pluginManager.registerEvent(type, typedListener, priority, this)
-				}
-			}
-		}
-
-		globalData[uniqueName] = registered
-	}
-
-
-	def unregister(String uniqueName) {
-		def registered = globalData[uniqueName]
-		if (registered) {
-			registered.each { server.pluginManager.unregisterEvent(it) }
-		}
-		globalData.remove(uniqueName)
 	}
 
 
