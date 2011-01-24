@@ -21,6 +21,7 @@ Installation
 ------------
 * Copy the .jar file from target/ to your craftserver folder's plugins/ directory
 * Create a scripts/ directory peer to the plugins/ directory (optional)
+* Download a copy of Groovy and copy embedded/groovy-all-1.x.jar to your craftserver folder
 
 
 Running
@@ -40,17 +41,27 @@ At start up an info message should be displayed:
 Using
 -----
 
-Within the Minecraft client use the commands /g and /gg
+Within the Minecraft client use the commands /g to execute a command or script
 
 * /g - allows you to run a piece of inline groovy script:
 
 	/g s.time
 
-* /gg - allows you to run script from the scripts/ directory:
+* To execute a script, just call that script as if it were a method
 
-	/gg morning
+	/g morning()
+	/g morning(2)
 
-The scripts must in the scripts/ directory must have a .groovy extension.
+The scripts must in the scripts/ directory must have a .groovy extension.  Arguments passed
+to the script are available in the variable 'args'
+
+scripts/morning.groovy:
+	// very simple example, resets time to morning
+	def day = ((int) s.time / 24000) + (args ? args [0].toInteger (): 0)
+	s.time = day * 24000
+	"Morning of day $day"
+
+The value of the last statement executed is send to the player as a chat message.
 
 
 API
@@ -68,21 +79,33 @@ Some entry points have been made available to scripts:
 	s -- the server (org.bukkit.Server)
 	w -- the world (org.bukkit.World)
 
-	g -- the GroovyBukkit instance (the plugin)
+	g -- the GroovyBukkit script runner instance
 
 	highY -- the y of the highest block for the players x/z location
 	bY -- a list of vertical blocks at the players location (0..128)
 	data -- a map of data specific to the user (persists across commands until server restart)
 	global -- a map of data global to all users (persists until server restart)
 
-And some methods are available via the plugin variable:
+And some custom methods are available for use:
 
 	register(uniqueName, closureMap) -- register a map of event handler closures
 	register(methodName, closure) -- register a single event handler closure
 	unregister(uniqueName/methodName)  -- unregister named event handler(s)
 
-	loc(w, x, y, z) -- create a Location instance with int or double values
-	loc(w, x, z) -- create a Location instance using the highest Y at the given x/z
+	loc(x, y, z) -- create a Location instance with int or double values
+	loc(x, z) -- create a Location instance using the highest Y at the given x/z
+
+	to(loc) -- teleport to the given location
+	facing(loc) -- use the 'yaw' of the location to return a BlockFace instance
+
+	m(value) -- return a Material instance from the given value, value can be Material, number, or string
+
+	stack(item) -- create an ItemStack, item can be a Material, number, or string
+	stack(item, qty) -- create an ItemStack of the given quantity
+
+	inv(pos, item, qty=1) -- set player's inventory pos to item, default quantity is 1
+	give(item, qty=1) -- give player item, default quantity is 1
+	give(player, item, qty=1) -- give given player item, default quantity is 1
 
 
 *Special Data*
@@ -100,7 +123,7 @@ The really special part of this is the ability to specify an http:// location:
 
 This will cause /gg commands for the player to retrieve remote scripts:
 
-	/gg morning
+	/g morning()
 
 Would look for http://192.168.1.99/~path/minecraft/morning.groovy and execute it.
 
@@ -126,7 +149,6 @@ Figure out what kind of biome you are in:
 Notes
 -----
 * /g commands auto import most of the org.bukkit subpackages
-* /gg commands that run scripts do not, the scripts will need import statements
 
 
 To Do
