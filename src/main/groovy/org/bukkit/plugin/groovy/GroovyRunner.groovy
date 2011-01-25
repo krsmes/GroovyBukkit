@@ -108,7 +108,6 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		vars.s = plugin.server
 		vars.global = plugin.globalData
 		vars.data = data
-		vars.p = player
 		def world = player.world
 		vars.w = world
 		vars.spawn = world.spawnLocation
@@ -118,13 +117,14 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 	def _runContext = {
 		def vars = shell.context.variables
+		Location location = player.location
+		def world = player.world
 
 		def op = [:]
 		plugin.server.onlinePlayers.each { op[it.name] = it }
 		vars.op = op
 
-		def world = player.world
-		Location location = player.location
+		vars.p = player
 		vars.l = location
 		vars.pitch = location.pitch
 

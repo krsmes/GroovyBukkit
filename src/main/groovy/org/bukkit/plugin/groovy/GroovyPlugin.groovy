@@ -67,6 +67,9 @@ class GroovyPlugin extends JavaPlugin
 			runner = new GroovyRunner(this, player, data)
 			data.runner = runner
 		}
+		else {
+			runner.player = player
+		}
 		runner.runScript(args.join(' '))
 	}
 
