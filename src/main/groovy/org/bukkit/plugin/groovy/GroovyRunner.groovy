@@ -226,6 +226,20 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		register(methodName, [(methodName): c])
 	}
 
+	static EVENT_TYPE_METHOD_NAME = [
+		(Event.Type.BLOCK_CANBUILD): 'onBlockCanBuild',
+		(Event.Type.BLOCK_DAMAGED): 'onBlockDamage',
+		(Event.Type.BLOCK_RIGHTCLICKED): 'onBlockRightClick',
+		(Event.Type.BLOCK_PLACED): 'onBlockPlace',
+		(Event.Type.REDSTONE_CHANGE): 'onBlockRedstoneChange',
+		(Event.Type.ENTITY_DAMAGEDBY_BLOCK): 'onEntityDamageByBlock',
+		(Event.Type.ENTITY_DAMAGEDBY_ENTITY): 'onEntityDamageByEntity',
+		(Event.Type.ENTITY_DAMAGEDBY_PROJECTILE): 'onEntityDamageByProjectile',
+		(Event.Type.PLUGIN_ENABLE): 'onPluginEnabled',
+		(Event.Type.PLUGIN_DISABLE): 'onPluginDisable',
+		(Event.Type.VEHICLE_COLLISION_BLOCK): 'onVehicleBlockCollision',
+		(Event.Type.VEHICLE_COLLISION_ENTITY): 'onVehicleEntityCollision'
+	]
 
 	def register(String uniqueName, Map listener, Event.Priority priority = Priority.Normal) {
 		def registered = plugin.globalData[uniqueName]
@@ -235,8 +249,11 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		registered = []
 
 		Event.Type.values().each { type ->
-			def methodName = type.toString()
-			methodName = 'on' + methodName.split('_').collect {it.toLowerCase().capitalize()}.join('')
+			def methodName = EVENT_TYPE_METHOD_NAME[type]
+			if (!methodName) {
+				methodName = type.toString()
+				methodName = 'on' + methodName.split('_').collect {it.toLowerCase().capitalize()}.join('')
+			}
 			if (listener."$methodName") {
 				def typedListener
 				switch (type.category) {
@@ -262,7 +279,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 				if (typedListener) {
 					log.info("Registering GroovyBukkit event listener $type for $methodName")
-					registered << plugin.server.pluginManager.registerEvent(type, typedListener, priority, this)
+					registered << plugin.server.pluginManager.registerEvent(type, typedListener, priority, plugin)
 				}
 			}
 		}
@@ -274,7 +291,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	def unregister(String uniqueName) {
 		def registered = plugin.globalData[uniqueName]
 		if (registered) {
-			registered.each { server.pluginManager.unregisterEvent(it) }
+			registered.each { plugin.server.pluginManager.unregisterEvent(it) }
 		}
 		plugin.globalData.remove(uniqueName)
 	}
