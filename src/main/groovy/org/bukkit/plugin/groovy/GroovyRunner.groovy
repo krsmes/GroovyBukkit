@@ -17,7 +17,8 @@ import org.bukkit.event.world.WorldListener
 import org.bukkit.event.server.ServerListener
 import org.bukkit.Material
 import org.bukkit.DyeColor
-
+import org.bukkit.entity.Entity
+import org.bukkit.block.Block
 
 
 public class GroovyRunner
@@ -94,6 +95,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 			}
 			catch (e) {
 				result = e.message
+				e.printStackTrace()
 			}
 		}
 		result
@@ -131,8 +133,14 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		def yaw = location.yaw % 360
 		if (yaw < 0) yaw += 360
 		vars.yaw = yaw
-		def facing = facing(yaw)
-		vars.f = facing
+		def f = facing(yaw)
+		def fR = facing(yaw+90)
+		def fL = facing(yaw-90)
+		def fB = facing(yaw+180)
+		vars.f = f
+		vars.fR = fR
+		vars.fL = fL
+		vars.fB = fB
 
 		Vector vector = new Vector(location.x, location.y-1.0, location.z)
 		vars.v = vector
@@ -147,7 +155,10 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		def block = world.getBlockAt(x, y, z)
 		vars.b = block
 		vars.highY = world.getHighestBlockYAt(x, z)
-		vars.bFwd = block.getRelative(facing)
+		vars.bF = block + f
+		vars.bR = block + fR
+		vars.bL = block + fL
+		vars.bB = block + fB
 		vars.bY = (0..128).collect {world.getBlockAt(x,it,z)}
 		vars
 	}
@@ -174,7 +185,12 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 	def m(def m) {
-		m instanceof Material ? m : m instanceof Integer ? Material.getMaterial((int)m) : Material.getMaterial(m.toString().toUpperCase().replaceAll(/[\s\.\-]/, '_'))
+		if (m instanceof Location || m instanceof Vector || m instanceof Entity) m = player.world[m]  // get block
+		m instanceof Material ? m :
+			m instanceof Integer ? Material.getMaterial((int)m) :
+			m instanceof ItemStack ? m.type :
+			m instanceof Block ? m.type :
+			Material.getMaterial(m.toString().toUpperCase().replaceAll(/[\s\.\-]/, '_'))
 	}
 
 
@@ -199,8 +215,8 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 
-	def to(def loc) {
-		player.teleportTo(loc)
+	def to(def l) {
+		player.teleportTo(loc(l))
 	}
 
 
@@ -214,8 +230,41 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		new Location(w, x as double, w.getHighestBlockYAt((int) x, (int) z), z as double)
 	}
 
+	def loc(def unknown) {
+		if (unknown instanceof Location) return unknown
+		(unknown as Vector)?.toLocation(player.world)
+	}
 
-	def facing(def yaw) {
+
+	def vec(def x, def y, def z) {
+		new Vector(x, y, z)
+	}
+
+	def vec(List args) {
+		new Vector(args[0], args[1], args[2])
+	}
+
+	def vec(Location l) {
+		new Vector(l.blockX, l.blockY, l.blockZ)
+	}
+
+	def vec(Entity e) {
+		vec(e.location)
+	}
+
+	def vec(int val) {
+		new Vector(val, val, val)
+	}
+
+	def facing(Entity e) {
+		facing(e.location)
+	}
+
+	def facing(Location l) {
+		facing(l.yaw)
+	}
+
+	def facing(Number yaw) {
 		yaw = yaw % 360
 		if (yaw < 0) yaw += 360
 		yaw <= 25 ? BlockFace.WEST : yaw < 65 ? BlockFace.NORTH_WEST : yaw <= 115 ? BlockFace.NORTH : yaw < 155 ? BlockFace.NORTH_EAST : yaw <= 205 ? BlockFace.EAST : yaw < 245 ? BlockFace.SOUTH_EAST : yaw <= 315 ? BlockFace.SOUTH : yaw < 335 ? BlockFace.SOUTH_WEST : BlockFace.WEST
@@ -296,5 +345,32 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		plugin.globalData.remove(uniqueName)
 	}
 
+
+	// temporary until Bukkit implements
+	def entities(name=null) {
+		def h = player.world.handle
+		def e = h.b.bukkitEntity
+		if (name) {
+			def cls = Class.forName("org.bukkit.entity.$name")
+			e.findAll {cls.isInstance(it)}
+		}
+		else {
+			e
+		}
+	}
+
+	def create(name, l=player.location) {
+		def h = player.world.handle
+		l = loc(l)
+
+		def e_cls = Class.forName('net.minecraft.server.EntityList')
+		def w_cls = Class.forName('net.minecraft.server.World')
+		def ent = e_cls.getDeclaredMethod('a', String.class, w_cls).invoke(null, name, h)
+		ent.c(l.x + 0.5f, l.y + 1.0f, l.z + 0.5f, 0.0f, 0.0f)
+		h.a(ent)
+
+		ent.bukkitEntity.teleportTo(l)
+		ent.bukkitEntity
+	}
 
 }
