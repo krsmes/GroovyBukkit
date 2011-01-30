@@ -67,8 +67,14 @@ class GroovyPlugin extends JavaPlugin
 		}
 
 		Location.metaClass.asType = { Class c ->
-			if (c == Vector.class) return new Vector(delegate.x, delegate.y, delegate.z)
+			if (c == Vector.class) return delegate.toVector()
 		}
+		Location.metaClass.plus = { ofs ->
+			if (ofs instanceof Integer) ofs = new Vector(0, ofs, 0)
+			((delegate as Vector) + (ofs as Vector)).toLocation(delegate.world, delegate.yaw, delegate.pitch)
+		}
+		Location.metaClass.block = {-> delegate.world[delegate] }
+
 
 		Entity.metaClass.asType = { Class c ->
 			if (c == Vector.class) return new Vector(delegate.location.x, delegate.location.y, delegate.location.z)
@@ -98,6 +104,7 @@ class GroovyPlugin extends JavaPlugin
 				block.data = b.data
 			}
 		}
+
 	}
 
 
