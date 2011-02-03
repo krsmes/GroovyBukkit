@@ -1,0 +1,8 @@
+p.sendMessage 'a b c d e f g a b'
+p.sendMessage 'h i j k l m n c d'
+p.sendMessage 'o p q r s t u A B'
+p.sendMessage 'v w x y z A B C D'
+p.sendMessage 'C D E F G H I E F'
+p.sendMessage 'J K L   N O P G H'
+p.sendMessage 'Q R S T U V W I J'
+p.sendMessage 'X Y Z ? L M N O P'

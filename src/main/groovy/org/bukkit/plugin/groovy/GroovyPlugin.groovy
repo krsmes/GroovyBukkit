@@ -16,6 +16,7 @@ import org.bukkit.util.Vector
 import org.bukkit.World
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
+import org.bukkit.command.CommandSender
 
 
 class GroovyPlugin extends JavaPlugin
@@ -61,6 +62,9 @@ class GroovyPlugin extends JavaPlugin
 			amt++
 			new Vector(delegate.modX*amt, delegate.modY*amt, delegate.modZ*amt)
 		}
+		BlockFace.metaClass.multiply = { int amt ->
+			new Vector(delegate.modX * amt, delegate.modY * amt, delegate.modZ * amt)
+		}
 
 		BlockFace.metaClass.asType = { Class c ->
 			if (c == Vector.class) return new Vector(delegate.modX, delegate.modY, delegate.modZ)
@@ -86,7 +90,7 @@ class GroovyPlugin extends JavaPlugin
 		World.metaClass.getAt = { pos ->
 			def v = pos as Vector
 			if (pos instanceof Entity) v.y = v.blockY-1 // block under entity
-			delegate.getBlockAt(v.blockX, v.blockY, v.blockZ)
+			(v.y < 0.0) ? delegate.getHighestBlockYAt(v.blockX, v.blockZ) : delegate.getBlockAt(v.blockX, v.blockY, v.blockZ)
 		}
 		World.metaClass.putAt = { pos, b ->
 			def v = pos as Vector
@@ -113,14 +117,16 @@ class GroovyPlugin extends JavaPlugin
 	}
 
 
-	boolean onCommand(Player player, Command cmd, String commandLabel, String[] args) {
+	public boolean onCommand(CommandSender sender, Command command, String commandLabel, String[] args) {
+		//log.info("groovy command ($commandLabel): $args")
 		try {
-			def result = "command_${cmd.name}"(player, getPlayerData(player), args?.toList())
-			if (result) player.sendMessage result.toString()
+			def player = sender instanceof Player ? sender : null
+			def result = "command_${command.name}"(player, getPlayerData(player), args?.toList())
+			if (result) sender.sendMessage result.toString()
 			return true
 		}
 		catch (e) {
-			player.sendMessage e.message
+			sender.sendMessage e.message
 			log.severe(e.message)
 			e.printStackTrace()
 		}
@@ -141,7 +147,11 @@ class GroovyPlugin extends JavaPlugin
 		else {
 			runner.player = player
 		}
-		runner.runScript(args.join(' '))
+
+		def script = args ? args.join(' ') : data.lastCommand
+		data.lastCommand = script
+
+		runner.runScript(script)
 	}
 
 
@@ -150,8 +160,8 @@ class GroovyPlugin extends JavaPlugin
 //
 
 	def getPlayerData = { Player player ->
-		def name = player.name
-		def result = _playerData[name]
+		def name = player?.name
+		def result = name ? _playerData[name] : globalData
 		if (!result) {
 			result = [:]
 			_playerData[name] = result

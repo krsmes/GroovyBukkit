@@ -1,6 +1,6 @@
 name: Groovy Plugin
 main: org.bukkit.plugin.groovy.GroovyPlugin
-version: 0.1.10
+version: 0.2.2
 commands:
   g:
     description: Evaluate groovy code

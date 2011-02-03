@@ -9,19 +9,16 @@ import org.bukkit.util.Vector
 import org.bukkit.inventory.ItemStack
 import org.bukkit.event.Event
 import org.bukkit.event.Event.Priority
-import org.bukkit.event.player.PlayerListener
-import org.bukkit.event.block.BlockListener
-import org.bukkit.event.entity.EntityListener
-import org.bukkit.event.vehicle.VehicleListener
-import org.bukkit.event.world.WorldListener
-import org.bukkit.event.server.ServerListener
 import org.bukkit.Material
 import org.bukkit.DyeColor
 import org.bukkit.entity.Entity
 import org.bukkit.block.Block
+import org.bukkit.event.Listener
+import org.bukkit.plugin.EventExecutor
+import org.bukkit.World
 
 
-public class GroovyRunner
+public class GroovyRunner implements EventExecutor
 {
 	static Logger log = Logger.getLogger("Minecraft")
 
@@ -34,12 +31,14 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	GroovyShell shell
 	GroovyPlugin plugin
 	Player player
+	World world
 	def data = [:]
 
 
 	GroovyRunner(GroovyPlugin plugin, Player player, def data) {
 		this.plugin = plugin
 		this.player = player
+		this.world = player ? player.world : plugin.server.worlds[0]
 		this.data = data
 		shell = _initShell(data)
 	}
@@ -80,16 +79,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 				def savedArgs = vars.args
 				vars.args = args
 
-				def gscript = shell.parse(script)
-				gscript.metaClass.methodMissing = { mname, margs ->
-					if (this.respondsTo(mname, margs)) {
-						this.invokeMethod(mname, margs)
-					}
-					else {
-						runFile(mname, margs)
-					}
-				}
-				result = gscript.run()
+				result = _parse(script, vars).run()
 
 				vars.args = savedArgs
 			}
@@ -101,6 +91,27 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		result
 	}
 
+	def _parse = { script, vars ->
+		def gscript = shell.parse(script)
+
+		gscript.metaClass.methodMissing = { mname, margs ->
+			if (this.respondsTo(mname, margs)) {
+				this.invokeMethod(mname, margs)
+			}
+			else {
+				runFile(mname, margs)
+			}
+		}
+		gscript.metaClass.propertyMissing = { pname ->
+			if (data.containsKey(pname)) return data[pname]
+			plugin.server.onlinePlayers.find { it.name.startsWith(pname) }
+		}
+//		gscript.metaClass.propertyMissing = { pname, value ->
+//			data[pname] = value
+//		}
+		gscript
+	}
+
 
 	def _initShell = { data ->
 		def shell = new GroovyShell()
@@ -109,57 +120,58 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		vars.g = this
 		vars.s = plugin.server
 		vars.global = plugin.globalData
-		vars.data = data
-		def world = player.world
 		vars.w = world
 		vars.spawn = world.spawnLocation
+		vars.data = data
 		shell
 	}
 
 
 	def _runContext = {
 		def vars = shell.context.variables
-		Location location = player.location
-		def world = player.world
 
-		def op = [:]
-		plugin.server.onlinePlayers.each { op[it.name] = it }
-		vars.op = op
+		def pl = [:]
+		plugin.server.onlinePlayers.each { pl[it.name] = it }
+		vars.pl = pl
 
-		vars.p = player
-		vars.l = location
-		vars.pitch = location.pitch
+		if (player) {
+			vars.me = player
 
-		def yaw = location.yaw % 360
-		if (yaw < 0) yaw += 360
-		vars.yaw = yaw
-		def f = facing(yaw)
-		def fR = facing(yaw+90)
-		def fL = facing(yaw-90)
-		def fB = facing(yaw+180)
-		vars.f = f
-		vars.fR = fR
-		vars.fL = fL
-		vars.fB = fB
+			Location location = player.location
+			vars.l = location
+			vars.pitch = location.pitch
+			def yaw = location.yaw % 360
+			if (yaw < 0) yaw += 360
+			vars.yaw = yaw
 
-		Vector vector = new Vector(location.x, location.y-1.0, location.z)
-		vars.v = vector
+			def f = facing(yaw)
+			def fR = facing(yaw+90)
+			def fL = facing(yaw-90)
+			def fB = facing(yaw+180)
+			vars.f = f
+			vars.fRgt = fR
+			vars.fLft = fL
+			vars.fBck = fB
 
-		def x = vector.blockX
-		def y = vector.blockY
-		def z = vector.blockZ
-		vars.x = x
-		vars.y = y
-		vars.z = z
+			Vector vector = new Vector(location.x, location.y-1.0, location.z)
+			vars.v = vector
+			vars.vHead = new Vector(location.x, location.y+1.5, location.z)
+			vars.vLook = looking(location)
 
-		def block = world.getBlockAt(x, y, z)
-		vars.b = block
-		vars.highY = world.getHighestBlockYAt(x, z)
-		vars.bF = block + f
-		vars.bR = block + fR
-		vars.bL = block + fL
-		vars.bB = block + fB
-		vars.bY = (0..128).collect {world.getBlockAt(x,it,z)}
+			def x = vector.blockX
+			def y = vector.blockY
+			def z = vector.blockZ
+			vars.x = x
+			vars.y = y
+			vars.z = z
+
+			def block = world[player]
+			vars.b = block
+			vars.bFwd = block + f
+			vars.bRgt = block + fR
+			vars.bLft = block + fL
+			vars.bBck = block + fB
+		}
 		vars
 	}
 
@@ -185,12 +197,20 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 	def m(def m) {
-		if (m instanceof Location || m instanceof Vector || m instanceof Entity) m = player.world[m]  // get block
+		if (m instanceof Location || m instanceof Vector || m instanceof Entity) m = world[m]  // get block
 		m instanceof Material ? m :
 			m instanceof Integer ? Material.getMaterial((int)m) :
 			m instanceof ItemStack ? m.type :
 			m instanceof Block ? m.type :
 			Material.getMaterial(m.toString().toUpperCase().replaceAll(/[\s\.\-]/, '_'))
+	}
+
+	def mdata(def m) {
+		if (m instanceof Location || m instanceof Vector || m instanceof Entity) m = world[m]  // get block
+		def result = m instanceof Integer ? m :
+			m instanceof Block ? m.data :
+			m instanceof ItemStack ? m.data?.data : 0
+		result ?: 0
 	}
 
 
@@ -216,45 +236,45 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
 	def to(def l) {
-		player.teleportTo(loc(l))
-	}
-
-
-	def loc(def x, def y, def z) {
-		new Location(player.world, x as double, y as double, z as double)
+		def dest = loc(l)
+		if (dest.pitch == 0.0 && dest.yaw == 0.0) { dest.pitch = player.location.pitch; dest.yaw = player.location.yaw }
+		player.teleportTo(dest)
 	}
 
 
 	def loc(def x, def z) {
-		def w = player.world
-		new Location(w, x as double, w.getHighestBlockYAt((int) x, (int) z), z as double)
+		new Location(world, x as double, world.getHighestBlockYAt((int) x, (int) z), z as double)
+	}
+
+	def loc(def x, def y, def z) {
+		new Location(world, x as double, y as double, z as double)
 	}
 
 	def loc(def unknown) {
 		if (unknown instanceof Location) return unknown
-		(unknown as Vector)?.toLocation(player.world)
+		if (unknown instanceof Entity) return unknown.location
+		(unknown as Vector)?.toLocation(world)
 	}
 
+
+	def xyz(def unknown) {
+		def v = (unknown as Vector)
+		v ? [v.blockX, v.blockY, v.blockZ] : []
+	}
+
+
+	def vec(def x, def z) {
+		new Vector(x,  -1, z)
+	}
 
 	def vec(def x, def y, def z) {
 		new Vector(x, y, z)
 	}
 
-	def vec(List args) {
-		new Vector(args[0], args[1], args[2])
+	def vec(def unknown) {
+		unknown as Vector
 	}
 
-	def vec(Location l) {
-		new Vector(l.blockX, l.blockY, l.blockZ)
-	}
-
-	def vec(Entity e) {
-		vec(e.location)
-	}
-
-	def vec(int val) {
-		new Vector(val, val, val)
-	}
 
 	def facing(Entity e) {
 		facing(e.location)
@@ -270,88 +290,96 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		yaw <= 25 ? BlockFace.WEST : yaw < 65 ? BlockFace.NORTH_WEST : yaw <= 115 ? BlockFace.NORTH : yaw < 155 ? BlockFace.NORTH_EAST : yaw <= 205 ? BlockFace.EAST : yaw < 245 ? BlockFace.SOUTH_EAST : yaw <= 315 ? BlockFace.SOUTH : yaw < 335 ? BlockFace.SOUTH_WEST : BlockFace.WEST
 	}
 
+	def looking(l=player?.location) {
+		l = loc(l)
+		def yaw = l.yaw % 360
+		if (yaw < 0) yaw += 360
+		def pitch = l.pitch
 
-	def register(String methodName, Closure c) {
-		register(methodName, [(methodName): c])
+		def yawR = Math.toRadians(-yaw)
+		def pitchR = Math.toRadians(-pitch)
+		def yawSin = Math.sin(yawR)
+		def yawCos = Math.cos(yawR)
+		def pitchSin = Math.sin(pitchR)
+		def pitchCos = Math.cos(pitchR)
+
+		new Vector(yawSin * pitchCos, pitchSin, yawCos * pitchCos)
 	}
 
-	static EVENT_TYPE_METHOD_NAME = [
-		(Event.Type.BLOCK_CANBUILD): 'onBlockCanBuild',
-		(Event.Type.BLOCK_DAMAGED): 'onBlockDamage',
-		(Event.Type.BLOCK_RIGHTCLICKED): 'onBlockRightClick',
-		(Event.Type.BLOCK_PLACED): 'onBlockPlace',
-		(Event.Type.REDSTONE_CHANGE): 'onBlockRedstoneChange',
-		(Event.Type.ENTITY_DAMAGEDBY_BLOCK): 'onEntityDamageByBlock',
-		(Event.Type.ENTITY_DAMAGEDBY_ENTITY): 'onEntityDamageByEntity',
-		(Event.Type.ENTITY_DAMAGEDBY_PROJECTILE): 'onEntityDamageByProjectile',
-		(Event.Type.PLUGIN_ENABLE): 'onPluginEnabled',
-		(Event.Type.PLUGIN_DISABLE): 'onPluginDisable',
-		(Event.Type.VEHICLE_COLLISION_BLOCK): 'onVehicleBlockCollision',
-		(Event.Type.VEHICLE_COLLISION_ENTITY): 'onVehicleEntityCollision'
-	]
+	def atblk(l=player?.location, maxDist=64.0, precision=0.01) {
+		l = loc(l)
+		def head = vec(l.x, l.y + 1.5, l.z)
+		def look = looking(l)
+		def cntr = 0.0
 
-	def register(String uniqueName, Map listener, Event.Priority priority = Priority.Normal) {
-		def registered = plugin.globalData[uniqueName]
-		if (registered) {
-			registered.each { plugin.server.pluginManager.unregisterEvent(it) }
+		def blk = null
+		def pos
+		while (!blk?.typeId && cntr < maxDist) {
+			cntr += precision
+			pos = head + vec(look.x * cntr, look.y * cntr, look.z * cntr)
+			blk = world[pos]
+			if (pos.blockY == 127 || pos.blockY == 1) break
 		}
-		registered = []
+		blk
+	}
 
-		Event.Type.values().each { type ->
-			def methodName = EVENT_TYPE_METHOD_NAME[type]
-			if (!methodName) {
-				methodName = type.toString()
-				methodName = 'on' + methodName.split('_').collect {it.toLowerCase().capitalize()}.join('')
-			}
-			if (listener."$methodName") {
-				def typedListener
-				switch (type.category) {
-					case Event.Category.PLAYER:
-						typedListener = listener as PlayerListener
-						break
-					case Event.Category.BLOCK:
-						typedListener = listener as BlockListener
-						break
-					case Event.Category.LIVING_ENTITY:
-						typedListener = listener as EntityListener
-						break
-					case Event.Category.VEHICLE:
-						typedListener = listener as VehicleListener
-						break
-					case Event.Category.WORLD:
-						typedListener = listener as WorldListener
-						break
-					case Event.Category.SERVER:
-						typedListener = listener as ServerListener
-						break
-				}
+	def dist(from, to) {
+		from = loc(from)
+		to = loc(to)
+		(from as Vector).distance(to as Vector)
+	}
 
-				if (typedListener) {
-					log.info("Registering GroovyBukkit event listener $type for $methodName")
-					registered << plugin.server.pluginManager.registerEvent(type, typedListener, priority, plugin)
-				}
-			}
+
+	def registeredListeners = [:]
+
+	void execute(Listener l, Event e) {
+		if (registeredListeners.containsKey(l)) l(e)
+	}
+
+	def register(String uniqueName, Event.Type type, Closure c) {
+		unregister(uniqueName)
+		def listener = c as Listener
+		plugin.server.pluginManager.registerEvent(type, listener, this, Priority.Normal, plugin)
+		registeredListeners[listener] = uniqueName
+	}
+
+	def register(String uniqueName, Map listeners, Event.Priority priority = Priority.Normal) {
+		unregister(uniqueName)
+
+		listeners.each { Event.Type type, closure ->
+			def listener = closure as Listener
+			plugin.server.pluginManager.registerEvent(type, listener as Listener, this, priority, plugin)
+			registeredListeners[listener] = uniqueName
 		}
-
-		plugin.globalData[uniqueName] = registered
 	}
 
 
 	def unregister(String uniqueName) {
-		def registered = plugin.globalData[uniqueName]
-		if (registered) {
-			registered.each { plugin.server.pluginManager.unregisterEvent(it) }
-		}
-		plugin.globalData.remove(uniqueName)
+		def entries = registeredListeners.findAll{ e -> e.value == uniqueName}
+		entries.each { registeredListeners.remove(it) }
 	}
 
 
-	// temporary until Bukkit implements
-	def entities(name=null) {
-		def h = player.world.handle
-		def e = h.b.bukkitEntity
+	def msg(Object... args) {
+		def players = []
+		def msg = []
+		args.each {
+			if (it instanceof Player) { players << it } else { msg << it }
+		}
+		if (!players) players << player
+		if (players) {
+			players.each { it.sendMessage msg.join(', ') }
+		}
+		else {
+			log.info('msg> '+ msg)
+		}
+	}
+
+
+	def ent(name=null) {
+		def e = world.entities
 		if (name) {
-			def cls = Class.forName("org.bukkit.entity.$name")
+			def cls = Class.forName("org.bukkit.entity.${name.capitalize()}")
 			e.findAll {cls.isInstance(it)}
 		}
 		else {
@@ -359,15 +387,14 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		}
 	}
 
-	def create(name, l=player.location) {
-		def h = player.world.handle
-		l = loc(l)
 
-		def e_cls = Class.forName('net.minecraft.server.EntityList')
-		def w_cls = Class.forName('net.minecraft.server.World')
-		def ent = e_cls.getDeclaredMethod('a', String.class, w_cls).invoke(null, name, h)
-		ent.c(l.x + 0.5f, l.y + 1.0f, l.z + 0.5f, 0.0f, 0.0f)
-		h.a(ent)
+	def create(name, l=player?.location) {
+		l = loc(l) ?: world.spawnLocation
+
+		Class ent_cls = Class.forName("net.minecraft.server.Entity${name.capitalize()}")
+		def wH = world.handle
+		def ent = ent_cls.newInstance(wH)
+		wH.a(ent)
 
 		ent.bukkitEntity.teleportTo(l)
 		ent.bukkitEntity
