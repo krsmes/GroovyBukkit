@@ -1,1 +1,1 @@
-bY[y+2..128]*.typeId=0
+(y+2..128).each{ w[v(x,it,z)].typeId = 0 }

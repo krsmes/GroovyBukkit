@@ -16,6 +16,7 @@ import org.bukkit.block.Block
 import org.bukkit.event.Listener
 import org.bukkit.plugin.EventExecutor
 import org.bukkit.World
+import org.bukkit.TreeType
 
 
 public class GroovyRunner implements EventExecutor
@@ -23,7 +24,7 @@ public class GroovyRunner implements EventExecutor
 	static Logger log = Logger.getLogger("Minecraft")
 
 	static SCRIPT_PREFIX = """
-import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import org.bukkit.inventory.*;import org.bukkit.material.*;import org.bukkit.util.*;
+import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import org.bukkit.inventory.*;import org.bukkit.material.*;import org.bukkit.event.*;import org.bukkit.util.*;
 """
 	static SCRIPT_LOC = 'scripts/'
 	static SCRIPT_SUFFIX = '.groovy'
@@ -104,6 +105,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		}
 		gscript.metaClass.propertyMissing = { pname ->
 			if (data.containsKey(pname)) return data[pname]
+			if (plugin.globalData.containsKey(pname)) return plugin.globalData[pname]
 			plugin.server.onlinePlayers.find { it.name.startsWith(pname) }
 		}
 //		gscript.metaClass.propertyMissing = { pname, value ->
@@ -136,26 +138,19 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 		if (player) {
 			vars.me = player
+			vars.inv = player.inventory
+			vars.at = lookingat()
 
 			Location location = player.location
-			vars.l = location
+			vars.loc = location
 			vars.pitch = location.pitch
 			def yaw = location.yaw % 360
 			if (yaw < 0) yaw += 360
 			vars.yaw = yaw
 
-			def f = facing(yaw)
-			def fR = facing(yaw+90)
-			def fL = facing(yaw-90)
-			def fB = facing(yaw+180)
-			vars.f = f
-			vars.fRgt = fR
-			vars.fLft = fL
-			vars.fBck = fB
-
-			Vector vector = new Vector(location.x, location.y-1.0, location.z)
-			vars.v = vector
-			vars.vHead = new Vector(location.x, location.y+1.5, location.z)
+			Vector vector = v(location.x, location.y-1.0, location.z)
+			vars.vec = vector
+			vars.vHead = v(location.x, location.y+1.5, location.z)
 			vars.vLook = looking(location)
 
 			def x = vector.blockX
@@ -165,9 +160,18 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 			vars.y = y
 			vars.z = z
 
+			def fF = f(yaw)
+			def fR = f(yaw + 90)
+			def fL = f(yaw - 90)
+			def fB = f(yaw + 180)
+			vars.fac = fF
+			vars.fRgt = fR
+			vars.fLft = fL
+			vars.fBck = fB
+
 			def block = world[player]
-			vars.b = block
-			vars.bFwd = block + f
+			vars.blk = block
+			vars.bFwd = block + fF
 			vars.bRgt = block + fR
 			vars.bLft = block + fL
 			vars.bBck = block + fB
@@ -175,37 +179,37 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		vars
 	}
 
+	def stringToType(s) {
+		s.toString().toUpperCase().replaceAll(/[\s\.\-]/, '_')
+	}
+
 
 //
 // helper methods
 //
 
-	def wool(def color, int qty = 1) {
-		new ItemStack(Material.WOOL, qty, (byte)0, color instanceof Number ? (byte)color : DyeColor."${color.toString().toUpperCase().replaceAll(/[\s\.\-]/, '_')}".data)
+
+	ItemStack i(def item) {
+		i(item, 1)
 	}
 
 
-	def stack(def item) {
-		stack(item, 1)
-	}
-
-
-	def stack(def item, int qty) {
+	ItemStack i(def item, int qty) {
 		item = item instanceof ItemStack ? item : new ItemStack(m(item))
 		if (qty > item.amount) item.amount = qty
 		item
 	}
 
-	def m(def m) {
+	Material m(def m) {
 		if (m instanceof Location || m instanceof Vector || m instanceof Entity) m = world[m]  // get block
 		m instanceof Material ? m :
 			m instanceof Integer ? Material.getMaterial((int)m) :
 			m instanceof ItemStack ? m.type :
 			m instanceof Block ? m.type :
-			Material.getMaterial(m.toString().toUpperCase().replaceAll(/[\s\.\-]/, '_'))
+			Material.getMaterial(stringToType(m))
 	}
 
-	def mdata(def m) {
+	def md(def m) {
 		if (m instanceof Location || m instanceof Vector || m instanceof Entity) m = world[m]  // get block
 		def result = m instanceof Integer ? m :
 			m instanceof Block ? m.data :
@@ -214,87 +218,85 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 
-	def inv(int pos, def item, int qty = 1) {
-	 	player.inventory.setItem(pos, stack(item, qty))
+	void inv(int pos, def item, int qty = 1) {
+	 	player.inventory.setItem(pos, i(item, qty))
 	}
 
 
-	def give(def item, int qty = 1) {
+	void give(def item, int qty = 1) {
 		give(player, item, qty)
 	}
 
-	def give(Player p, def item, int qty = 1) {
+	void give(Player p, def item, int qty = 1) {
 		def inventory = player.inventory
-		def stac = stack(item, qty)
+		def stac = i(item, qty)
 		if (stac.type == Material.WOOL || stac.type == Material.INK_SACK) {
-			inventory.setItem(inventory.firstEmpty(), stack(item, qty))
+			inventory.setItem(inventory.firstEmpty(), i(item, qty))
 		}
 		else {
-			inventory.addItem(stack(item, qty))
+			inventory.addItem(i(item, qty))
 		}
 	}
 
 
-	def to(def l) {
-		def dest = loc(l)
-		if (dest.pitch == 0.0 && dest.yaw == 0.0) { dest.pitch = player.location.pitch; dest.yaw = player.location.yaw }
-		player.teleportTo(dest)
-	}
-
-
-	def loc(def x, def z) {
+	Location l(def x, def z) {
 		new Location(world, x as double, world.getHighestBlockYAt((int) x, (int) z), z as double)
 	}
 
-	def loc(def x, def y, def z) {
+
+	Location l(def x, def y, def z) {
 		new Location(world, x as double, y as double, z as double)
 	}
 
-	def loc(def unknown) {
+
+	Location l(def unknown) {
 		if (unknown instanceof Location) return unknown
 		if (unknown instanceof Entity) return unknown.location
 		(unknown as Vector)?.toLocation(world)
 	}
 
 
-	def xyz(def unknown) {
-		def v = (unknown as Vector)
-		v ? [v.blockX, v.blockY, v.blockZ] : []
+	List xyz(def unknown) {
+		def vec = (unknown as Vector)
+		vec ? [vec.blockX, vec.blockY, vec.blockZ] : []
 	}
 
 
-	def vec(def x, def z) {
+	Vector v(def x, def z) {
 		new Vector(x,  -1, z)
 	}
 
-	def vec(def x, def y, def z) {
+
+	Vector v(def x, def y, def z) {
 		new Vector(x, y, z)
 	}
 
-	def vec(def unknown) {
+
+	Vector v(def unknown) {
 		unknown as Vector
 	}
 
 
-	def facing(Entity e) {
-		facing(e.location)
+	BlockFace f(Entity e) {
+		f(e.location)
 	}
 
-	def facing(Location l) {
-		facing(l.yaw)
+
+	BlockFace f(Location l) {
+		f(l.yaw)
 	}
 
-	def facing(Number yaw) {
-		yaw = yaw % 360
+	BlockFace f(Number yaw) {
+		yaw %= 360
 		if (yaw < 0) yaw += 360
 		yaw <= 25 ? BlockFace.WEST : yaw < 65 ? BlockFace.NORTH_WEST : yaw <= 115 ? BlockFace.NORTH : yaw < 155 ? BlockFace.NORTH_EAST : yaw <= 205 ? BlockFace.EAST : yaw < 245 ? BlockFace.SOUTH_EAST : yaw <= 315 ? BlockFace.SOUTH : yaw < 335 ? BlockFace.SOUTH_WEST : BlockFace.WEST
 	}
 
-	def looking(l=player?.location) {
-		l = loc(l)
-		def yaw = l.yaw % 360
+	Vector looking(loc=player?.location) {
+		loc = l(loc)
+		def yaw = loc.yaw % 360
 		if (yaw < 0) yaw += 360
-		def pitch = l.pitch
+		def pitch = loc.pitch
 
 		def yawR = Math.toRadians(-yaw)
 		def pitchR = Math.toRadians(-pitch)
@@ -306,57 +308,32 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		new Vector(yawSin * pitchCos, pitchSin, yawCos * pitchCos)
 	}
 
-	def atblk(l=player?.location, maxDist=64.0, precision=0.01) {
-		l = loc(l)
-		def head = vec(l.x, l.y + 1.5, l.z)
-		def look = looking(l)
+	Block lookingat(loc=player?.location, maxDist=128.0, precision=0.02) {
+		loc = l(loc)
+		def head = v(loc.x, loc.y + 1.6, loc.z)
+		def look = looking(loc)
 		def cntr = 0.0
 
-		def blk = null
+		Block blk = null
+		def type
 		def pos
-		while (!blk?.typeId && cntr < maxDist) {
+		while (cntr < maxDist) {
 			cntr += precision
-			pos = head + vec(look.x * cntr, look.y * cntr, look.z * cntr)
+			pos = head + v(look.x * cntr, look.y * cntr, look.z * cntr)
 			blk = world[pos]
-			if (pos.blockY == 127 || pos.blockY == 1) break
+			type = blk.typeId
+			// stop if non-air, non-snow found or y is 1 or 127
+			if ((type > 0 && type != 78) || pos.blockY == 127 || pos.blockY == 1) break
+			// reduce precision the farther away (greatly decreases # of loops)
+			precision += precision * 0.0333
 		}
 		blk
 	}
 
 	def dist(from, to) {
-		from = loc(from)
-		to = loc(to)
+		from = l(from)
+		to = l(to)
 		(from as Vector).distance(to as Vector)
-	}
-
-
-	def registeredListeners = [:]
-
-	void execute(Listener l, Event e) {
-		if (registeredListeners.containsKey(l)) l(e)
-	}
-
-	def register(String uniqueName, Event.Type type, Closure c) {
-		unregister(uniqueName)
-		def listener = c as Listener
-		plugin.server.pluginManager.registerEvent(type, listener, this, Priority.Normal, plugin)
-		registeredListeners[listener] = uniqueName
-	}
-
-	def register(String uniqueName, Map listeners, Event.Priority priority = Priority.Normal) {
-		unregister(uniqueName)
-
-		listeners.each { Event.Type type, closure ->
-			def listener = closure as Listener
-			plugin.server.pluginManager.registerEvent(type, listener as Listener, this, priority, plugin)
-			registeredListeners[listener] = uniqueName
-		}
-	}
-
-
-	def unregister(String uniqueName) {
-		def entries = registeredListeners.findAll{ e -> e.value == uniqueName}
-		entries.each { registeredListeners.remove(it) }
 	}
 
 
@@ -376,7 +353,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 
-	def ent(name=null) {
+	List ent(name=null) {
 		def e = world.entities
 		if (name) {
 			def cls = Class.forName("org.bukkit.entity.${name.capitalize()}")
@@ -388,16 +365,91 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 
-	def create(name, l=player?.location) {
-		l = loc(l) ?: world.spawnLocation
+	Entity make(name, int qty = 1, loc=player?.location) {
+		loc = l(loc) ?: world.spawnLocation
 
 		Class ent_cls = Class.forName("net.minecraft.server.Entity${name.capitalize()}")
 		def wH = world.handle
-		def ent = ent_cls.newInstance(wH)
-		wH.a(ent)
+		def ents = []
+		for (int cntr = 0; cntr<qty; cntr++) {
+			def ent = ent_cls.newInstance(wH)
+			ent.c(loc.x + 0.5f, loc.y + 1.0f, loc.z + 0.5f, 0.0f, 0.0f)
+			wH.a(ent)
+			ent.bukkitEntity.teleportTo(loc)
 
-		ent.bukkitEntity.teleportTo(l)
-		ent.bukkitEntity
+			ents << ent.bukkitEntity
+		}
+		data.lastmake = ents ? ents.size() == 1 ? ents[0] : ents : null
 	}
+
+
+	void to(def loc) {
+		def lastloc = player.location
+		def dest = l(loc) ?: lastloc
+		if (dest.pitch == 0.0 && dest.yaw == 0.0) { dest.pitch = lastloc.pitch; dest.yaw = lastloc.yaw }
+		player.teleportTo(dest)
+		data.lastloc = lastloc
+	}
+
+	void back() {
+		to(data.lastloc)
+	}
+
+
+
+
+
+	def registeredListeners = [:]
+
+
+	void register(String uniqueName, def type, Closure c) {
+		register(uniqueName, [(type):c])
+	}
+
+
+	def register(String uniqueName, Map typeClosureMap, Event.Priority priority = Priority.Normal) {
+		unregister(uniqueName)
+
+		def listener = [toString: {uniqueName}] as Listener
+		def listeners = [:]
+		typeClosureMap.each { def type, closure ->
+			if (!(type instanceof Event.Type)) type = Event.Type."${stringToType(type)}"
+			listeners[type] = closure
+
+			plugin.server.pluginManager.registerEvent(type, listener, this, priority, plugin)
+		}
+		registeredListeners[uniqueName] = listeners
+		log.info("Registered '$uniqueName' with ${listeners.size()} listener(s): ${listeners.keySet()}")
+	}
+
+
+	void unregister(String uniqueName) {
+		log.info("unregister '$uniqueName'")
+		if (registeredListeners.containsKey(uniqueName)) {
+			def listeners = registeredListeners.remove(uniqueName)
+			log.info("...found '$uniqueName' (${listeners.size()})")
+			listeners?.clear()
+			log.info("...unregistered")
+		}
+	}
+
+
+	void execute(Listener listener, Event e) {
+		log.info("execute()")
+		def name = listener.toString()
+		log.info("Execute '$name' ${e.type}")
+		if (registeredListeners.containsKey(name)) {
+			def listeners = registeredListeners[name]
+			log.info("...found '$name' (${listeners.size()})")
+			if (listeners.containsKey(e.type)) {
+				log.info("...found ${e.type}")
+				listeners[e.type](e)
+			}
+		}
+		else {
+			log.info("...'$name' not found")
+		}
+	}
+
 
 }
