@@ -34,6 +34,8 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	Player player
 	World world
 	def data = [:]
+	def futures = []
+	def running = true
 
 
 	GroovyRunner(GroovyPlugin plugin, Player player, def data) {
@@ -42,6 +44,18 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		this.world = player ? player.world : plugin.server.worlds[0]
 		this.data = data
 		shell = _initShell(data)
+		_startFuturesThread()
+	}
+
+	def _startFuturesThread = { ->
+		Thread.start {
+			while (running) {
+				while (futures) {
+					futures.pop()()
+				}
+				sleep 100
+			}
+		}
 	}
 
 	def runScript = { def script ->
@@ -49,30 +63,13 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 	def runFile = { scriptName, args ->
-		def scriptLoc = data.scripts
-		if (!scriptLoc) {
-			scriptLoc = SCRIPT_LOC
-		}
-		def name = scriptLoc + scriptName + SCRIPT_SUFFIX
-		try {
-			URL u = name.toURL()
-			def script = u.text
-			if (script) {
-				run script, args
-			}
-		}
-		catch (e) {
-			if (!name.startsWith('http:')) {
-				def file = new File(name)
-				if (file.exists()) {
-					run file, args
-				}
-			}
+		def script = load(scriptName + SCRIPT_SUFFIX)
+		if (script) {
+			run script, args
 		}
 	}
 
-
-	def run = { script, args ->
+	def run = { script, args=[] ->
 		def result = null
 		if (script) {
 			try {
@@ -179,13 +176,47 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		vars
 	}
 
+
+//
+// helper methods
+//
+
+
+	def load = { name ->
+		def file = null
+		if (name instanceof File) {
+			file = name
+		}
+		else {
+			def scriptLoc = data.scripts
+			if (!scriptLoc) {
+				scriptLoc = SCRIPT_LOC
+			}
+			def fullName = scriptLoc + name
+			try {
+				URL u = name.toURL()
+				return u.text
+			}
+			catch (e) {
+				if (!name.startsWith('http:')) {
+					file = new File(fullName)
+				}
+			}
+		}
+		if (file?.exists()) {
+			return file.text
+		}
+	}
+
+
+
 	def stringToType(s) {
 		s.toString().toUpperCase().replaceAll(/[\s\.\-]/, '_')
 	}
 
 
 //
-// helper methods
+// 'api'
 //
 
 
@@ -323,9 +354,9 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 			blk = world[pos]
 			type = blk.typeId
 			// stop if non-air, non-snow found or y is 1 or 127
-			if ((type > 0 && type != 78) || pos.blockY == 127 || pos.blockY == 1) break
+			if ((type > 0 && type != 78 && type != 50) || pos.blockY == 127 || pos.blockY == 1) break
 			// reduce precision the farther away (greatly decreases # of loops)
-			precision += precision * 0.0333
+			if (precision < 0.9) precision += precision * 0.0333
 		}
 		blk
 	}
@@ -414,42 +445,38 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		def listeners = [:]
 		typeClosureMap.each { def type, closure ->
 			if (!(type instanceof Event.Type)) type = Event.Type."${stringToType(type)}"
-			listeners[type] = closure
-
-			plugin.server.pluginManager.registerEvent(type, listener, this, priority, plugin)
+			if (closure instanceof Closure) {
+				listeners[type] = closure
+				plugin.server.pluginManager.registerEvent(type, listener, this, priority, plugin)
+			}
 		}
-		registeredListeners[uniqueName] = listeners
-		log.info("Registered '$uniqueName' with ${listeners.size()} listener(s): ${listeners.keySet()}")
+		if (listeners.size() > 0) {
+			registeredListeners[uniqueName] = listeners
+			log.info("Registered '$uniqueName' with ${listeners.size()} listener(s): ${listeners.keySet()}")
+		}
 	}
 
 
 	void unregister(String uniqueName) {
-		log.info("unregister '$uniqueName'")
 		if (registeredListeners.containsKey(uniqueName)) {
 			def listeners = registeredListeners.remove(uniqueName)
-			log.info("...found '$uniqueName' (${listeners.size()})")
 			listeners?.clear()
-			log.info("...unregistered")
 		}
 	}
 
 
 	void execute(Listener listener, Event e) {
-		log.info("execute()")
 		def name = listener.toString()
-		log.info("Execute '$name' ${e.type}")
 		if (registeredListeners.containsKey(name)) {
 			def listeners = registeredListeners[name]
-			log.info("...found '$name' (${listeners.size()})")
 			if (listeners.containsKey(e.type)) {
-				log.info("...found ${e.type}")
 				listeners[e.type](e)
 			}
 		}
-		else {
-			log.info("...'$name' not found")
-		}
 	}
 
+	void future(Closure c) {
+		futures.add(0, c)
+	}
 
 }
