@@ -1,4 +1,4 @@
-register 'blah', 'player move', { e ->
+register 'blah', 'player login', { e ->
 	def xx = (int) e.to.x
 	def zz = (int) e.to.z
 

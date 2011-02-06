@@ -11,7 +11,7 @@ import org.bukkit.Location
 import org.bukkit.command.Command
 import org.bukkit.block.BlockFace
 import org.bukkit.block.Block
-import org.bukkit.entity.Entity
+import org.bukkit.entity.*
 import org.bukkit.util.Vector
 import org.bukkit.World
 import org.bukkit.Material
@@ -45,6 +45,8 @@ class GroovyPlugin extends JavaPlugin
 
 
 	void onDisable() {
+		_playerData.clear()
+		globalData.clear()
 		log.info("${description.name} ${description.version} disabled")
 	}
 
@@ -173,6 +175,15 @@ class GroovyPlugin extends JavaPlugin
 
 
 		Entity.metaClass.asType = { Class c ->
+			if (c == Vector.class) return new Vector(delegate.location.x, delegate.location.y, delegate.location.z)
+		}
+		LivingEntity.metaClass.asType = { Class c ->
+			if (c == Vector.class) return new Vector(delegate.location.x, delegate.location.y, delegate.location.z)
+		}
+		HumanEntity.metaClass.asType = { Class c ->
+			if (c == Vector.class) return new Vector(delegate.location.x, delegate.location.y, delegate.location.z)
+		}
+		Player.metaClass.asType = { Class c ->
 			if (c == Vector.class) return new Vector(delegate.location.x, delegate.location.y, delegate.location.z)
 		}
 

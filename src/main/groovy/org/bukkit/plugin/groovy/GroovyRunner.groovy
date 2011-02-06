@@ -51,7 +51,11 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		Thread.start {
 			while (running) {
 				while (futures) {
-					futures.pop()()
+					try {
+						futures.pop()()
+						sleep 50
+					}
+					catch (e) {}
 				}
 				sleep 100
 			}
@@ -461,6 +465,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		if (registeredListeners.containsKey(uniqueName)) {
 			def listeners = registeredListeners.remove(uniqueName)
 			listeners?.clear()
+			log.info("Unregistered '$uniqueName'")
 		}
 	}
 
