@@ -1,6 +1,6 @@
-def (creature, qty, follow) = args.toList()
+def (creature, follow, qty) = args.toList()
 
 (1..qty).each {
-	def e = make(creature, 1, follow)
+	def e = make(creature, follow, 1)
 	attract(e, follow)
 }

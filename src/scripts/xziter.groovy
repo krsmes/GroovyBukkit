@@ -2,9 +2,11 @@ def (v1, v2, callback) = args.toList()
 
 v1 = v(v1)
 v2 = v(v2)
+def min = Vector.getMinimum(v1, v2)
+def max = Vector.getMaximum(v1, v2)
 
-(v1.x..v2.x).each { xx ->
-	(v1.z..v2.z).each { zz ->
+(min.x..max.x).each { xx ->
+	(min.z..max.z).each { zz ->
 		callback(xx,zz)
 	}
 }

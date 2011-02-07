@@ -1,8 +1,0 @@
-msg 'a b c d e f g a b'
-msg 'h i j k l m n c d'
-msg 'o p q r s t u A B'
-msg 'v w x y z A B C D'
-msg 'C D E F G H I E F'
-msg 'J K L   N O P G H'
-msg 'Q R S T U V W I J'
-msg 'X Y Z ? L M N O P'

@@ -1,4 +1,4 @@
-def head = v(loc.x, loc.y+1.6, loc.z)
+def head = v(here.x, here.y+1.6, here.z)
 def yawR = Math.toRadians(-yaw)
 def pitchR = Math.toRadians(-pitch)
 def yawSin = Math.sin(yawR)

@@ -1,4 +1,4 @@
-register 'blah', 'player login', { e ->
+register 'blah', 'player move', { e ->
 	def xx = (int) e.to.x
 	def zz = (int) e.to.z
 
@@ -9,9 +9,9 @@ register 'blah', 'player login', { e ->
 	def maxZ = minZ + 20
 
 	if (xx < minX || xx > maxX || zz < minZ || zz > maxZ) {
-		log.info("... ${e.player.name} is out of range")
+		log "... ${e.player.name} is out of range"
 		future {
-		    log.info("Teleporting ${e.player.name} back to spawn ${xyz(spawn)}")
+		    log "Teleporting ${e.player.name} back to spawn ${xyz(spawn)}"
 			e.player.teleportTo(spawn)
 		}
 	}
