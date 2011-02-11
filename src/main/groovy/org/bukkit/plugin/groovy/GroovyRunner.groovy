@@ -29,7 +29,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
 	void _shutdown() {
-		listeners.keySet().each { unregister(it) }
+		listeners.keySet().each { unlisten(it) }
 		// save data
 		def datafile = new File(initScriptsLoc, 'data.yml')
 		if (!datafile.exists()) datafile.createNewFile()
@@ -50,7 +50,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 			log "Initializing ${f.name}"
 			def result = run(f.text)
 			if (result instanceof Map) {
-				register(f.name, result)
+				listen(f.name, result)
 			}
 		}
 		this
@@ -174,13 +174,13 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 // listener registration
 //
 
-	void register(String uniqueName, def type, Closure c) {
-		register(uniqueName, [(type):c])
+	void listen(String uniqueName, def type, Closure c) {
+		listen(uniqueName, [(type):c])
 	}
 
 
-	def register(String uniqueName, Map typeClosureMap, Event.Priority priority = Priority.Normal) {
-		unregister(uniqueName)
+	def listen(String uniqueName, Map typeClosureMap, Event.Priority priority = Priority.Normal) {
+		unlisten(uniqueName)
 
 		def listener = [toString: {uniqueName}] as Listener
 		def typedListeners = [:]
@@ -198,7 +198,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 
-	void unregister(String uniqueName) {
+	void unlisten(String uniqueName) {
 		if (listeners.containsKey(uniqueName)) {
 			def listeners = listeners.remove(uniqueName)
 			listeners?.clear()
@@ -217,6 +217,10 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		}
 	}
 
+
+	void command(String cmd, Closure c) {
+		plugin.commands[cmd] = c
+	}
 
 
 	@Override protected void finalize() {

@@ -1,19 +1,53 @@
-register 'blah', 'player move', { e ->
-	def xx = (int) e.to.x
-	def zz = (int) e.to.z
 
-	def minX = ((int) spawn.x) - 10
-	def maxX = minX + 20
-
-	def minZ = ((int) spawn.z) - 10
-	def maxZ = minZ + 20
-
-	if (xx < minX || xx > maxX || zz < minZ || zz > maxZ) {
-		log "... ${e.player.name} is out of range"
-		future {
-		    log "Teleporting ${e.player.name} back to spawn ${xyz(spawn)}"
-			e.player.teleportTo(spawn)
+command 'give', { player, args ->
+	// give player qty material
+	// give qty material
+	// give material
+	if (args) {
+		def rec = player
+		def qty = 1
+		def mat
+		def pattern = ''
+		args.each { pattern += (it ==~ /\d+/) ? '#' : 'X' }
+		log pattern
+		switch (pattern) {
+			case '#':
+				mat = m(args[0].toInteger())
+				break
+			case 'X':
+				mat = m(args[0])
+				break
+			case 'X#':
+				rec = p(args[0])
+				mat = m(args[1].toInteger())
+				break
+			case 'XX':
+				rec = p(args[0])
+				mat = m(args[1])
+				break
+			case '#X':
+				qty = args[0].toInteger()
+				mat = m(args[1])
+				break
+			case '##':
+				qty = args[0].toInteger()
+				mat = m(args[1].toInteger())
+				break
+			case 'X##':
+				rec = p(args[0])
+				qty = args[1].toInteger()
+				mat = m(args[2].toInteger())
+				break
+			case 'X#X':
+				rec = p(args[0])
+				qty = args[1].toInteger()
+				mat = m(args[2])
+				break
+			default:
+				player.sendMessage "/give to qty material"
 		}
+		log "give $rec, $mat, $qty"
+		give rec, i(mat, qty)
 	}
-
 }
+

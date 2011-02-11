@@ -11,6 +11,7 @@ import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.event.Event
 import org.bukkit.event.player.PlayerEvent
+import org.bukkit.event.player.PlayerChatEvent
 
 
 class GroovyPlugin extends JavaPlugin
@@ -22,6 +23,8 @@ class GroovyPlugin extends JavaPlugin
 	static SCRIPT_SUFFIX = '.groovy'
 
 	static def enabled
+
+	def commands = [:]
 
 	def playerRunners = [:]
 	def runner
@@ -43,6 +46,7 @@ class GroovyPlugin extends JavaPlugin
 
 	void onDisable() {
 		enabled = false
+		commands.clear()
 		playerRunners.each { it._shutdown() }
 		playerRunners.clear()
 		runner._shutdown()
@@ -106,14 +110,29 @@ class GroovyPlugin extends JavaPlugin
 	}
 
 
+	def permitted(player, command) {
+		true
+	}
+
+
 	def registerEventHandlers() {
-		runner.register('GroovyPlugin', [
+		runner.listen('GroovyPlugin', [
 
 			(Event.Type.PLAYER_JOIN): { PlayerEvent e ->
 				if (enabled) {
 					def name = e.player.name
 					def runner = getRunner(e.player)
 					log.info("GroovyPlugin> $name initialized $runner")
+				}
+			},
+
+			(Event.Type.PLAYER_COMMAND): { PlayerChatEvent e ->
+				def cmds = e.message.split(' ').toList()
+				def cmd = cmds[0].substring(1)
+				def closure = commands[cmd]
+				if (closure && permitted(e.player, cmd)) {
+					closure(e.player, cmds.size()>1?cmds[1..-1]:[])
+					e.cancelled = true
 				}
 			},
 
