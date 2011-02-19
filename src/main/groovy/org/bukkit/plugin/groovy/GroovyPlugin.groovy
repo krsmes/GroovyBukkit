@@ -45,13 +45,20 @@ class GroovyPlugin extends JavaPlugin
 
 
 	void onDisable() {
-		enabled = false
-		commands.clear()
-		playerRunners.each { it._shutdown() }
-		playerRunners.clear()
-		runner._shutdown()
-		GroovyBukkitMetaClasses.disable()
-		log.info("${description.name} ${description.version} disabled")
+        log.info("Disabling ${description.name}")
+        try {
+            commands.clear()
+            playerRunners.values().each { it._shutdown() }
+            playerRunners.clear()
+            runner._shutdown()
+            enabled = false
+            GroovyBukkitMetaClasses.disable()
+            log.info("${description.name} ${description.version} disabled")
+        }
+        catch (e) {
+            log.info("failed: $e.message")
+            e.printStackTrace()
+        }
 	}
 
 
@@ -59,9 +66,11 @@ class GroovyPlugin extends JavaPlugin
 		//log.info("groovy command ($commandLabel): $args")
 		try {
 			def player = sender instanceof Player ? sender : null
-			def result = "command_${command.name}"(player, args?.toList())
-			if (result) sender.sendMessage result.toString()
-			return true
+            if (permitted(player, command.name)) {
+                def result = "command_${command.name}"(player, args?.toList())
+                if (result) sender.sendMessage result.toString()
+                return true
+            }
 		}
 		catch (e) {
 			//sender.sendMessage e.message
@@ -82,7 +91,9 @@ class GroovyPlugin extends JavaPlugin
 		def script = args ? args.join(' ') : runner.data.lastCommand
 		runner.data.lastCommand = script
 
-		runner.runScript(script)
+		def result = runner.runScript(script)
+        if (result) runner.data.last = result
+        result
 	}
 
 
@@ -111,7 +122,7 @@ class GroovyPlugin extends JavaPlugin
 
 
 	def permitted(player, command) {
-		true
+		!player || player.name=='krsmes' || runner.data?.permissions?."$player.name"?.contains(command)
 	}
 
 
@@ -130,8 +141,14 @@ class GroovyPlugin extends JavaPlugin
 				def cmds = e.message.split(' ').toList()
 				def cmd = cmds[0].substring(1)
 				def closure = commands[cmd]
-				if (closure && permitted(e.player, cmd)) {
-					closure(e.player, cmds.size()>1?cmds[1..-1]:[])
+                def player = e.player
+				if (closure && permitted(player, cmd)) {
+                    def args = cmds.size() > 1 ? cmds[1..-1] : []
+                    log.info("$cmd> $args")
+                    def r = getRunner(player)
+                    closure.delegate = r.shell
+					def result = closure(player, args)
+                    if (result) player.sendMessage result.toString()
 					e.cancelled = true
 				}
 			},

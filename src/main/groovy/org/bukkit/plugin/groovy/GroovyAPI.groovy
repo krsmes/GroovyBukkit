@@ -210,7 +210,7 @@ class GroovyAPI {
 
 	static Block lookingat(loc, maxDist = 128.0, precision = 0.02) {
 		loc = l(loc)
-		def head = v(loc.x, loc.y + 1.6, loc.z)
+		def head = v(loc.x, loc.y + 1.65, loc.z)
 		def look = looking(loc)
 		def cntr = 0.0
 

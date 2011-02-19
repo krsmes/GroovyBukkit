@@ -29,11 +29,19 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
 	void _shutdown() {
-		listeners.keySet().each { unlisten(it) }
+		def listenerNames = listeners.keySet() as List
+        listenerNames.each { unlisten(it) }
 		// save data
 		def datafile = new File(initScriptsLoc, 'data.yml')
 		if (!datafile.exists()) datafile.createNewFile()
-		datafile.text = dumpyaml(data)
+        log "Storing $datafile"
+        try {
+            data.remove('last')
+		    datafile.text = dumpyaml(data)
+        }
+        catch (e) {
+            log "Unable to store: $data\n$e.message"
+        }
 	}
 
 
@@ -43,6 +51,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		// load data
 		def datafile = new File(dir, 'data.yml')
 		if (datafile.exists()) {
+            log "Loading $datafile"
 			data.putAll loadyaml(datafile.text)
 		}
 		// run scripts
