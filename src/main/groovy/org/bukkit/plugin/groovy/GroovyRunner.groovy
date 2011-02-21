@@ -5,6 +5,7 @@ import org.bukkit.event.Event.Priority
 import org.bukkit.event.Listener
 import org.bukkit.plugin.EventExecutor
 import org.yaml.snakeyaml.Yaml
+import org.bukkit.entity.Player
 
 
 class GroovyRunner extends GroovyAPI implements EventExecutor {
@@ -18,6 +19,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 	def data = [:]
 	def listeners = [:]
+    Player player = null
 
 
 	GroovyRunner(GroovyPlugin plugin, def data) {
@@ -28,24 +30,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 
-	void _shutdown() {
-		def listenerNames = listeners.keySet() as List
-        listenerNames.each { unlisten(it) }
-		// save data
-		def datafile = new File(initScriptsLoc, 'data.yml')
-		if (!datafile.exists()) datafile.createNewFile()
-        log "Storing $datafile"
-        try {
-            data.remove('last')
-		    datafile.text = dumpyaml(data)
-        }
-        catch (e) {
-            log "Unable to store: $data\n$e.message"
-        }
-	}
-
-
-	def init() {
+	def _init() {
 		def dir = new File(initScriptsLoc)
 		if (!dir.exists()) { dir.mkdirs() }
 		// load data
@@ -65,8 +50,25 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		this
 	}
 
+    void _shutdown() {
+        def listenerNames = listeners.keySet() as List
+        listenerNames.each { unlisten(it) }
+        // save data
+        def datafile = new File(initScriptsLoc, 'data.yml')
+        if (!datafile.exists()) datafile.createNewFile()
+        log "Storing $datafile"
+        try {
+            data.remove('last')
+            datafile.text = dumpyaml(data)
+        }
+        catch (e) {
+            log "Unable to store: $data\n$e.message"
+        }
+    }
 
-	def getInitScriptsLoc() {
+
+
+    def getInitScriptsLoc() {
 		scriptLoc + 'startup/'
 	}
 
@@ -108,11 +110,19 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		def gscript = shell.parse(script)
 
 		gscript.metaClass.methodMissing = { mname, margs ->
+            // try method on this class
 			if (this.respondsTo(mname, margs)) {
 				this.invokeMethod(mname, margs)
 			}
 			else {
-				runFile(mname, margs)
+                // try plugin command
+                if (plugin.isCommand(mname)) {
+                    plugin.runCommand(player, mname, margs)
+                }
+                else {
+                    // try script file
+                    runFile mname, margs
+                }
 			}
 		}
 

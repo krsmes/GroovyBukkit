@@ -30,15 +30,10 @@ class GroovyPlugin extends JavaPlugin
 	def runner
 
 
-	GroovyPlugin(PluginLoader pluginLoader, Server instance, PluginDescriptionFile desc, File folder, File plugin, ClassLoader cLoader) {
-		super(pluginLoader, instance, desc, folder, plugin, cLoader)
-	}
-
-
 	void onEnable() {
 		enabled = true
 		GroovyBukkitMetaClasses.enable()
-		runner = new GroovyRunner(this, [:]).init()
+		runner = new GroovyRunner(this, [:])._init()
 		registerEventHandlers()
 		log.info("${description.name} ${description.version} enabled")
 	}
@@ -63,7 +58,7 @@ class GroovyPlugin extends JavaPlugin
 
 
 	public boolean onCommand(CommandSender sender, Command command, String commandLabel, String[] args) {
-		//log.info("groovy command ($commandLabel): $args")
+		//log.info("GroovyPlugin> $args")
 		try {
 			def player = sender instanceof Player ? sender : null
             if (permitted(player, command.name)) {
@@ -107,7 +102,7 @@ class GroovyPlugin extends JavaPlugin
 			def name = player.name
 			result = playerRunners[name]
 			if (!result) {
-				result = new GroovyPlayerRunner(this, player, [:]).init()
+				result = new GroovyPlayerRunner(this, player, [:])._init()
 				playerRunners[name] = result
 			}
 			else {
@@ -122,8 +117,30 @@ class GroovyPlugin extends JavaPlugin
 
 
 	def permitted(player, command) {
-		!player || player.name=='krsmes' || runner.data?.permissions?."$player.name"?.contains(command)
+		!player || player.name=='krsmes' || !runner.data.permissions ||
+                runner.data.permissions.'*'?.contains(command) ||
+                runner.data.permissions."$player.name"?.contains(command)
 	}
+
+
+    def isCommand(command) {
+        commands.containsKey(command)
+    }
+
+
+    def runCommand(player, command, args) {
+        def closure = commands[command]
+        if (closure && permitted(player, command)) {
+            log.info("${player?:'console'}: $command> $args")
+            def r = getRunner(player)
+            closure.delegate = r.shell
+            def result = closure(player, args)
+            if (result) {
+                log.info("${player ?: 'console'}: $command< $result")
+                if (player) player.sendMessage result.toString()
+            }
+        }
+    }
 
 
 	def registerEventHandlers() {
@@ -131,26 +148,19 @@ class GroovyPlugin extends JavaPlugin
 
 			(Event.Type.PLAYER_JOIN): { PlayerEvent e ->
 				if (enabled) {
-					def name = e.player.name
-					def runner = getRunner(e.player)
-					log.info("GroovyPlugin> $name initialized $runner")
+					getRunner(e.player)
 				}
 			},
 
 			(Event.Type.PLAYER_COMMAND): { PlayerChatEvent e ->
-				def cmds = e.message.split(' ').toList()
-				def cmd = cmds[0].substring(1)
-				def closure = commands[cmd]
-                def player = e.player
-				if (closure && permitted(player, cmd)) {
+                if (enabled) {
+                    def player = e.player
+                    def cmds = e.message.split(' ').toList()
+                    def cmd = cmds[0].substring(1)
                     def args = cmds.size() > 1 ? cmds[1..-1] : []
-                    log.info("$cmd> $args")
-                    def r = getRunner(player)
-                    closure.delegate = r.shell
-					def result = closure(player, args)
-                    if (result) player.sendMessage result.toString()
-					e.cancelled = true
-				}
+                    runCommand(player, cmd, args)
+                    e.cancelled = true
+                }
 			},
 
 			(Event.Type.PLAYER_QUIT): { PlayerEvent e ->
@@ -159,7 +169,6 @@ class GroovyPlugin extends JavaPlugin
 				if (runner) {
 					runner._shutdown()
 					playerRunners.remove(name)
-					log.info("GroovyPlugin> $name shutdown $runner")
 				}
 			}
 
