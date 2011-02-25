@@ -11,6 +11,9 @@ Examples:
     permit krsmes g whitelist
         add 'g' and 'whitelist' command to krsmes permissions
 
+    permit krmses *
+        add the special * (all) permission to krsmes
+
     permit krsmes -whitelist
         remove 'whitelist' command from krsmes permissions
 

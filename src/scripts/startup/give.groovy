@@ -1,4 +1,24 @@
+/*
+Command: give
 
+Arguments:
+    material
+    player material
+    qty material
+    player qty material
+
+Examples:
+
+    give 1
+        give self one stone
+
+    give 5 stone
+        give self 5 stone
+
+    give krsmes 64 arrow
+        give krsmes 64 arrows
+
+ */
 command 'give', { player, args ->
 	// give player qty material
 	// give qty material

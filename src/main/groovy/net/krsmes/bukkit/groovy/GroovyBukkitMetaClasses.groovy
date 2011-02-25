@@ -1,4 +1,4 @@
-package org.bukkit.plugin.groovy
+package net.krsmes.bukkit.groovy
 
 import org.bukkit.craftbukkit.block.CraftBlock
 import org.bukkit.Location

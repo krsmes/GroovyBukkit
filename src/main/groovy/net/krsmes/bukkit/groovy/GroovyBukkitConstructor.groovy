@@ -1,4 +1,4 @@
-package org.bukkit.plugin.groovy
+package net.krsmes.bukkit.groovy
 
 import org.yaml.snakeyaml.constructor.Constructor
 import org.yaml.snakeyaml.nodes.Tag

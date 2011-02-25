@@ -1,4 +1,4 @@
-package org.bukkit.plugin.groovy
+package net.krsmes.bukkit.groovy
 
 import java.util.logging.Logger
 

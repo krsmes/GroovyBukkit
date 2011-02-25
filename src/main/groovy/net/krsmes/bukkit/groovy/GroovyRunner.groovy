@@ -1,4 +1,4 @@
-package org.bukkit.plugin.groovy
+package net.krsmes.bukkit.groovy
 
 import org.bukkit.event.Event
 import org.bukkit.event.Event.Priority

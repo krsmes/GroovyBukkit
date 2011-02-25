@@ -1,6 +1,28 @@
 import org.bukkit.event.player.PlayerLoginEvent
 import org.bukkit.event.Event
 
+/*
+Command: whitelist
+
+Arguments: on|off|[-]playername
+
+Examples:
+
+    whitelist on
+        turn whitelist functionality on
+
+    whitelist off
+        turn whitelist functionality on
+
+    whitelist krsmes
+        add player 'krsmes' to the whitelist
+
+    whitelist -krsmes
+        remove player 'krsmes' from the whitelist, this also kicks krsmes if they are currently online
+
+ */
+
+// command implementation
 command 'whitelist', { player, args ->
     args.each {
         if (it == 'on') {
@@ -24,6 +46,7 @@ command 'whitelist', { player, args ->
     "enabled=$global.whitelistEnabled $global.whitelist"
 }
 
+// event handlers necessary to support whitelist
 [
 	(Event.Type.PLAYER_LOGIN): { PlayerLoginEvent e ->
 		if (global.whitelistEnabled && !global.whitelist.contains(e.player.name))

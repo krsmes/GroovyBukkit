@@ -1,4 +1,4 @@
-package org.bukkit.plugin.groovy
+package net.krsmes.bukkit.groovy
 
 import org.yaml.snakeyaml.nodes.Tag
 import org.yaml.snakeyaml.representer.Represent

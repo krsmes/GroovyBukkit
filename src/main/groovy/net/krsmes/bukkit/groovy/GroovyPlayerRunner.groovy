@@ -1,4 +1,4 @@
-package org.bukkit.plugin.groovy
+package net.krsmes.bukkit.groovy
 
 import org.bukkit.entity.Player
 import org.bukkit.Location
