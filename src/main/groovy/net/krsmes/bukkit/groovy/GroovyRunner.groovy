@@ -19,6 +19,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 	def data = [:]
 	def listeners = [:]
+    def registeredTypes = []  // seeing we can't unregister listeners, this list keeps track of what types we've registered
     Player player = null
 
 
@@ -31,7 +32,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
 	def _init() {
-		def dir = new File(initScriptsLoc)
+		def dir = new File(_initScriptsLoc)
 		if (!dir.exists()) { dir.mkdirs() }
 		// load data
 		def datafile = new File(dir, 'data.yml')
@@ -53,13 +54,18 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
     void _shutdown() {
         def listenerNames = listeners.keySet() as List
         listenerNames.each { unlisten(it) }
+        _save()
+    }
+
+    void _save() {
         // save data
-        def datafile = new File(initScriptsLoc, 'data.yml')
+        def datafile = new File(_initScriptsLoc, 'data.yml')
         if (!datafile.exists()) datafile.createNewFile()
         log "Storing $datafile"
         try {
-            data.remove('last')
+            def last = data.remove('last')
             datafile.text = dumpyaml(data)
+            data.put('last', last)
         }
         catch (e) {
             log "Unable to store: $data\n$e.message"
@@ -67,8 +73,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
     }
 
 
-
-    def getInitScriptsLoc() {
+    def get_initScriptsLoc() {
 		scriptLoc + 'startup/'
 	}
 
@@ -108,22 +113,28 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 	def _parse = { script, vars ->
 		def gscript = shell.parse(script)
+        _log.fine("parse: $script")
 
 		gscript.metaClass.methodMissing = { mname, margs ->
+            _log.fine("missingMethod $mname: $margs")
             // try method on this class
 			if (this.respondsTo(mname, margs)) {
-				this.invokeMethod(mname, margs)
-			}
-			else {
-                // try plugin command
-                if (plugin.isCommand(mname)) {
-                    plugin.runCommand(player, mname, margs)
+                _log.fine("missingMethod: invoke")
+                try {
+				    return this.invokeMethod(mname, margs)
                 }
-                else {
-                    // try script file
-                    runFile mname, margs
-                }
+                catch (groovy.lang.MissingMethodException e) {}
 			}
+            // try plugin command
+            if (isCommand(mname)) {
+                _log.fine("missingMethod: command")
+                return runCommand(mname, margs)
+            }
+            else {
+                // try script file
+                _log.fine("missingMethod: script")
+                return runFile(mname, margs)
+            }
 		}
 
 		gscript.metaClass.propertyMissing = { pname ->
@@ -207,7 +218,11 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 			if (!(type instanceof Event.Type)) type = Event.Type."${stringToType(type)}"
 			if (closure instanceof Closure) {
 				typedListeners[type] = closure
-				plugin.server.pluginManager.registerEvent(type, listener, this, priority, plugin)
+                if (!registeredTypes.contains(type)) {
+                    // only register for any given type once (until the pluginManager can support unregistering)
+				    plugin.server.pluginManager.registerEvent(type, listener, this, priority, plugin)
+                    registeredTypes << type
+                }
 			}
 		}
 		if (typedListeners.size() > 0) {
@@ -241,8 +256,25 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		plugin.commands[cmd] = c
 	}
 
+    def isCommand(command) {
+        plugin.commands.containsKey(command)
+    }
 
-	@Override protected void finalize() {
+    def runCommand(command, args=null) {
+        def closure = plugin.commands[command]
+        if (closure && plugin.permitted(player, command)) {
+            _log.info("${player ?: 'console'}: $command> $args")
+            def result = closure(player, args)
+            if (result) {
+                _log.info("${player ?: 'console'}: $command< $result")
+                if (player) player.sendMessage result.toString()
+            }
+        }
+    }
+
+
+
+    @Override protected void finalize() {
 		println "${this}.finalize()"
 		super.finalize()
 	}

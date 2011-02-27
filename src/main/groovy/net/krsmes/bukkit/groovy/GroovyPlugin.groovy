@@ -9,6 +9,7 @@ import org.bukkit.command.CommandSender
 import org.bukkit.event.Event
 import org.bukkit.event.player.PlayerEvent
 import org.bukkit.event.player.PlayerChatEvent
+import org.bukkit.event.world.WorldEvent
 
 
 class GroovyPlugin extends JavaPlugin
@@ -121,28 +122,15 @@ class GroovyPlugin extends JavaPlugin
 	}
 
 
-    def isCommand(command) {
-        commands.containsKey(command)
-    }
-
-
-    def runCommand(player, command, args) {
-        def closure = commands[command]
-        if (closure && permitted(player, command)) {
-            log.info("${player?:'console'}: $command> $args")
-            def r = getRunner(player)
-            closure.delegate = r.shell
-            def result = closure(player, args)
-            if (result) {
-                log.info("${player ?: 'console'}: $command< $result")
-                if (player) player.sendMessage result.toString()
-            }
-        }
-    }
-
-
 	def registerEventHandlers() {
 		runner.listen('GroovyPlugin', [
+
+            (Event.Type.WORLD_SAVED): { WorldEvent e ->
+                if (enabled) {
+                    runner._save()
+                    playerRunners.values().each { it._save() }
+                }
+            },
 
 			(Event.Type.PLAYER_JOIN): { PlayerEvent e ->
 				if (enabled) {
@@ -150,14 +138,16 @@ class GroovyPlugin extends JavaPlugin
 				}
 			},
 
-			(Event.Type.PLAYER_COMMAND): { PlayerChatEvent e ->
+			(Event.Type.PLAYER_COMMAND_PREPROCESS): { PlayerChatEvent e ->
                 if (enabled) {
-                    def player = e.player
                     def cmds = e.message.split(' ').toList()
                     def cmd = cmds[0].substring(1)
-                    def args = cmds.size() > 1 ? cmds[1..-1] : []
-                    runCommand(player, cmd, args)
-                    e.cancelled = true
+                    if (commands.containsKey(cmd)) {
+                        def args = cmds.size() > 1 ? cmds[1..-1] : []
+//                        getRunner(e.player).run("'$cmd'(*args)", args)
+                        getRunner(e.player).runCommand(cmd, args)
+                        e.cancelled = true
+                    }
                 }
 			},
 
