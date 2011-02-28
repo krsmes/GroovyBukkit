@@ -321,11 +321,11 @@ class GroovyAPI {
 					try {
 						def result = futures.pop()()
 						if (result instanceof Closure) future result
-						sleep 50
+						sleep 10
 					}
 					catch (e) {}
 				}
-				sleep 200
+				sleep 50
 			}
 		}
 	}

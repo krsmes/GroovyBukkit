@@ -23,27 +23,27 @@ Examples:
  */
 
 // command implementation
-command 'whitelist', { player, args ->
+command 'whitelist', { runner, args ->
     args.each {
         if (it == 'on') {
-            global.whitelistEnabled = true
+            runner.global.whitelistEnabled = true
         }
         else if (it == 'off') {
-            global.whitelistEnabled = false
+            runner.global.whitelistEnabled = false
         }
         else if (it.startsWith('-')) {
             def playerName = it.substring(1)
-            global.whitelist.remove(playerName)
+            runner.global.whitelist.remove(playerName)
             def p = p(playerName)
             if (p) {
                 p.kickPlayer("Hey dude, you're not on the whitelist")
             }
         }
         else {
-            global.whitelist.add(it)
+            runner.global.whitelist.add(it)
         }
     }
-    "enabled=$global.whitelistEnabled $global.whitelist"
+    "enabled=$runner.global.whitelistEnabled $runner.global.whitelist"
 }
 
 // event handlers necessary to support whitelist

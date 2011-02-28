@@ -20,8 +20,8 @@ class GroovyPlayerRunner extends GroovyRunner {
 	}
 
 
-	Map _runContext() {
-		def vars = super._runContext()
+	void _updateVars() {
+        super._updateVars()
 		Location location = player.location
 		vars.me = player
 		vars.inv = player.inventory
@@ -52,7 +52,6 @@ class GroovyPlayerRunner extends GroovyRunner {
 		vars.bRgt = block + fR
 		vars.bLft = block + fL
 		vars.bBck = block + fB
-		vars
 	}
 
 

@@ -27,8 +27,8 @@ Examples:
         remove 'whitelist' command from all users
 
  */
-command 'permit', { player, args ->
-    def permissions = global.permissions ?: [:]
+command 'permit', { runner, args ->
+    def permissions = runner.global.permissions ?: [:]
     def playerName = null
     args.each {
         def negative = it.startsWith('-')
@@ -55,5 +55,5 @@ command 'permit', { player, args ->
             permissions[playerName] = permList
         }
     }
-    global.permissions = permissions  // in case it didn't exist before
+    runner.global.permissions = permissions  // in case it didn't exist before
 }

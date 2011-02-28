@@ -14,9 +14,11 @@ class GroovyRunner extends GroovyAPI implements EventExecutor {
 import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import org.bukkit.inventory.*;import org.bukkit.material.*;import org.bukkit.event.*;import org.bukkit.util.*;
 """
 
-	GroovyShell shell
-	GroovyPlugin plugin
+    GroovyPlugin plugin
+    GroovyShell shell
+    Map vars
 
+    def global
 	def data = [:]
 	def listeners = [:]
     def registeredTypes = []  // seeing we can't unregister listeners, this list keeps track of what types we've registered
@@ -26,8 +28,9 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	GroovyRunner(GroovyPlugin plugin, def data) {
 		super(plugin.server)
 		this.plugin = plugin
+        this.global = plugin.runner?.data ?: data
 		this.data = data
-		shell = _initShell(data)
+		_initShell(data)
 	}
 
 
@@ -63,9 +66,9 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
         if (!datafile.exists()) datafile.createNewFile()
         log "Storing $datafile"
         try {
-            def last = data.remove('last')
-            datafile.text = dumpyaml(data)
-            data.put('last', last)
+            def savableData = [:]
+            data.each{ k, v -> if (k!='last' && k!='temp' && v instanceof Serializable) savableData.put(k,v) }
+            datafile.text = dumpyaml(savableData)
         }
         catch (e) {
             log "Unable to store: $data\n$e.message"
@@ -95,11 +98,11 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		def result = null
 		if (script) {
 			try {
-				def vars = _runContext()
+				_updateVars()
 				def savedArgs = vars.args
 				vars.args = args
 
-				result = _parse(script, vars).run()
+				result = _parse(script).run()
 
 				vars.args = savedArgs
 			}
@@ -111,7 +114,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		result
 	}
 
-	def _parse = { script, vars ->
+	def _parse = { script ->
 		def gscript = shell.parse(script)
         _log.fine("parse: $script")
 
@@ -149,27 +152,23 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
 	def _initShell(data) {
-		def shell = new GroovyShell()
-		def vars = shell.context.variables
+		shell = new GroovyShell()
+		vars = shell.context.variables
 		vars.g = this
 		vars.s = server
-		vars.global = plugin.runner?.data ?: data
+		vars.global = global
 		vars.data = data
-		shell
+        shell
 	}
 
 
-	Map _runContext() {
-		def vars = shell.context.variables
-
+	void _updateVars() {
 		vars.w = world
 		vars.spawn = world.spawnLocation
 
 		def pl = [:]
 		plugin.server.onlinePlayers.each { pl[it.name] = it }
 		vars.pl = pl
-
-		vars
 	}
 
 
@@ -264,7 +263,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
         def closure = plugin.commands[command]
         if (closure && plugin.permitted(player, command)) {
             _log.info("${player ?: 'console'}: $command> $args")
-            def result = closure(player, args)
+            def result = closure(this, args)
             if (result) {
                 _log.info("${player ?: 'console'}: $command< $result")
                 if (player) player.sendMessage result.toString()

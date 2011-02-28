@@ -19,12 +19,12 @@ Examples:
         give krsmes 64 arrows
 
  */
-command 'give', { player, args ->
+command 'give', { runner, args ->
 	// give player qty material
 	// give qty material
 	// give material
 	if (args) {
-		def rec = player
+		def rec = runner.player
 		def qty = 1
 		def mat
 		def pattern = ''
@@ -64,7 +64,7 @@ command 'give', { player, args ->
 				mat = m(args[2])
 				break
 			default:
-				player.sendMessage "/give to qty material"
+                runner.player.sendMessage "/give to qty material"
 		}
 		log "give $rec, $mat, $qty"
 		give rec, i(mat, qty)
