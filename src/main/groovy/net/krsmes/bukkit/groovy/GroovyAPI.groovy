@@ -309,6 +309,7 @@ class GroovyAPI {
 
 
 	static void future(Closure c) {
+        _log.fine("adding a future")
 		futures.add(0, c)  // pop() comes off the end so always add to the beginnig for fifo
 	}
 
@@ -319,7 +320,9 @@ class GroovyAPI {
 			while (GroovyPlugin.enabled) {
 				while (futures) {
 					try {
+                        _log.fine("popping a future")
 						def result = futures.pop()()
+                        // if the closure returns a closure it is appended to the stack
 						if (result instanceof Closure) future result
 						sleep 10
 					}
