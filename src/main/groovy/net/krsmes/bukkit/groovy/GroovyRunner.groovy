@@ -41,7 +41,8 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		def datafile = new File(dir, 'data.yml')
 		if (datafile.exists()) {
             log "Loading $datafile"
-			data.putAll loadyaml(datafile.text)
+            def yamldata = loadyaml(datafile.text)
+            if (yamldata) data.putAll yamldata
 		}
 		// run scripts
 		dir.eachFileMatch(groovy.io.FileType.FILES, ~/.*\.groovy/) { f ->

@@ -29,7 +29,6 @@ command 'give', { runner, args ->
 		def mat
 		def pattern = ''
 		args.each { pattern += (it ==~ /\d+/) ? '#' : 'X' }
-		log pattern
 		switch (pattern) {
 			case '#':
 				mat = m(args[0].toInteger())
@@ -66,7 +65,6 @@ command 'give', { runner, args ->
 			default:
                 runner.player.sendMessage "/give to qty material"
 		}
-		log "give $rec, $mat, $qty"
 		give rec, i(mat, qty)
 	}
 }
