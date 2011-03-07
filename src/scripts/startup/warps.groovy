@@ -1,22 +1,38 @@
 command 'warp', { runner, args ->
     def warp_name = args.join(' ')
-    def warp_loc = runner.data.warps?."$warp_name"
-    if (!warp_loc) {
-        warp_loc = runner.global.warps?."$warp_name"
+    if (warp_name) {
+        def warp_loc = runner.data.warps?."$warp_name"
+        if (!warp_loc) {
+            warp_loc = runner.global.warps?."$warp_name"
+        }
+        if (warp_loc) {
+            runner.data.lastloc = runner.player.location
+            runner.player.teleportTo warp_loc
+            warp_loc.toString()
+        }
+        else "Warp '$warp_name' not found"
     }
-    if (warp_loc) {
-        runner.player.teleportTo warp_loc
-        "$warp_loc"
+    else "Private: ${runner.data.warps?.keySet()} -- Public: ${runner.global.warps?.keySet()}"
+}
+
+
+command 'warp-back', { runner, args ->
+    if (runner.data.lastloc) {
+        def lastloc = runner.player.location
+        runner.player.teleportTo runner.data.lastloc
+        runner.data.lastloc = lastloc
     }
-    else "Warp '$warp_name' not found"
 }
 
 
 command 'warp-create', { runner, args ->
     def warp_name = args.join(' ')
     def warps = runner.data.warps ?: [:]
-    warps[warp_name] = runner.player.location
+    if (warp_name) {
+        warps[warp_name] = runner.player.location
+    }
     runner.data.warps = warps
+    warps.keySet()
 }
 
 
@@ -24,8 +40,9 @@ command 'warp-delete', { runner, args ->
     def warp_name = args.join(' ')
     def warps = runner.data.warps
     if (warps) {
-        if (warps.contains(warp_name)) warps.remove(warp_name)
+        if (warps.containsKey(warp_name)) warps.remove(warp_name)
     }
+    warps.keySet()
 }
 
 
@@ -42,6 +59,7 @@ command 'warp-public', { runner, args ->
     warps = runner.global.warps ?: [:]
     warps[warp_name] = warp_loc
     runner.global.warps = warps
+    warps.keySet()
 }
 
 
@@ -49,6 +67,7 @@ command 'warp-public-delete', { runner, args ->
     def warp_name = args.join(' ')
     def warps = runner.global.warps
     if (warps) {
-        if (warps.contains(warp_name)) warps.remove(warp_name)
+        if (warps.containsKey(warp_name)) warps.remove(warp_name)
     }
+    warps.keySet()
 }

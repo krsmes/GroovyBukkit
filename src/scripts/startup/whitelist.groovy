@@ -24,32 +24,36 @@ Examples:
 
 // command implementation
 command 'whitelist', { runner, args ->
+    def glob = runner.global
     args.each {
         if (it == 'on') {
-            runner.global.whitelistEnabled = true
+            glob.whitelistEnabled = true
         }
         else if (it == 'off') {
-            runner.global.whitelistEnabled = false
+            glob.whitelistEnabled = false
         }
         else if (it.startsWith('-')) {
             def playerName = it.substring(1)
-            runner.global.whitelist.remove(playerName)
+            glob.whitelist?.remove(playerName)
             def p = p(playerName)
             if (p) {
-                p.kickPlayer("Hey dude, you're not on the whitelist")
+                def msg = glob.whitelistMessage ?: "Hey dude, you're not on the list"
+                p.kickPlayer(msg)
             }
         }
         else {
-            runner.global.whitelist.add(it)
+            if (!glob.whitelist) glob.whitelist = []
+            glob.whitelist.add(it)
         }
     }
-    "enabled=$runner.global.whitelistEnabled $runner.global.whitelist"
+    "enabled=$glob.whitelistEnabled $glob.whitelist"
 }
 
 // event handlers necessary to support whitelist
 [
 	(Event.Type.PLAYER_LOGIN): { PlayerLoginEvent e ->
+        def msg = global.whitelistMessage ?: "Hey dude, you're not on the list"
 		if (global.whitelistEnabled && !global.whitelist.contains(e.player.name))
-			e.disallow(PlayerLoginEvent.Result.KICK_OTHER, "Hey dude, you're not on the whitelist")
+			e.disallow(PlayerLoginEvent.Result.KICK_OTHER, msg)
 	}
 ]

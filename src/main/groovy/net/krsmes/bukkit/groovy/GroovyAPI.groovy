@@ -12,6 +12,7 @@ import org.bukkit.block.BlockFace
 import org.bukkit.util.Vector
 import org.bukkit.World
 import org.bukkit.Server
+import org.bukkit.entity.LivingEntity
 
 class GroovyAPI {
 	static Logger _log = Logger.getLogger("Minecraft")
@@ -34,7 +35,6 @@ class GroovyAPI {
 	GroovyAPI(Server server, World world) {
 		this.server = server
 		this.world = world
-		_initFutures()
 	}
 
 
@@ -208,9 +208,10 @@ class GroovyAPI {
 	}
 
 
-	static Block lookingat(loc, maxDist = 128.0, precision = 0.02) {
+	static Block lookingat(loc, maxDist = 128.0, precision = 0.01) {
+        def height = (loc instanceof LivingEntity) ? loc.eyeHeight : 1.62
 		loc = l(loc)
-		def head = v(loc.x, loc.y + 1.65, loc.z)
+		def head = v(loc.x, loc.y + height, loc.z)
 		def look = looking(loc)
 		def cntr = 0.0
 
@@ -222,10 +223,8 @@ class GroovyAPI {
 			pos = head + v(look.x * cntr, look.y * cntr, look.z * cntr)
 			blk = loc.world[pos]
 			type = blk.typeId
-			// stop if non-air, non-snow found or y is 1 or 127
-			if ((type > 0 && type != 78 && type != 50) || pos.blockY == 127 || pos.blockY == 1) break
-			// reduce precision the farther away (greatly decreases # of loops)
-			if (precision < 0.1) precision += precision * 0.0333
+			// stop if non-air or y is 1 or 127
+			if ((type > 0 && !(type in [50,55,65,66,68,78])) || pos.blockY == 127 || pos.blockY == 1) break
 		}
 		blk
 	}
@@ -296,41 +295,6 @@ class GroovyAPI {
 
 	static def stringToType(s) {
 		s.toString().toUpperCase().replaceAll(/[\s\.\-]/, '_')
-	}
-
-
-//
-// futures
-//
-
-
-	static futures = []
-	static Thread futuresThread
-
-
-	static void future(Closure c) {
-        _log.fine("adding a future")
-		futures.add(0, c)  // pop() comes off the end so always add to the beginnig for fifo
-	}
-
-
-	synchronized void _initFutures() {
-		if (futuresThread && futuresThread.alive) return
-		futuresThread = Thread.start {
-			while (GroovyPlugin.enabled) {
-				while (futures) {
-					try {
-                        _log.fine("popping a future")
-						def result = futures.pop()()
-                        // if the closure returns a closure it is appended to the stack
-						if (result instanceof Closure) future result
-						sleep 10
-					}
-					catch (e) {}
-				}
-				sleep 50
-			}
-		}
 	}
 
 }

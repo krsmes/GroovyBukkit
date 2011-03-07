@@ -10,6 +10,9 @@ import org.bukkit.event.Event
 import org.bukkit.event.player.PlayerEvent
 import org.bukkit.event.player.PlayerChatEvent
 import org.bukkit.event.world.WorldEvent
+import org.bukkit.World
+import net.krsmes.bukkit.groovy.events.DayChangeEvent
+import net.krsmes.bukkit.groovy.events.HourChangeEvent
 
 
 class GroovyPlugin extends JavaPlugin
@@ -33,6 +36,7 @@ class GroovyPlugin extends JavaPlugin
 		GroovyBukkitMetaClasses.enable()
 		runner = new GroovyRunner(this, [:])._init()
 		registerEventHandlers()
+        initFutures()
 		log.info("${description.name} ${description.version} enabled")
 	}
 
@@ -135,6 +139,9 @@ class GroovyPlugin extends JavaPlugin
 			(Event.Type.PLAYER_JOIN): { PlayerEvent e ->
 				if (enabled) {
 					getRunner(e.player)
+                    if (runner.data.joinMessage) {
+                        e.player.sendMessage runner.data.joinMessage
+                    }
 				}
 			},
 
@@ -162,5 +169,52 @@ class GroovyPlugin extends JavaPlugin
 
 		])
 	}
+
+
+//
+// custom events
+//
+
+    def hourChange(World world, hour) {
+        if (hour == 0) server.pluginManager.callEvent(new DayChangeEvent(world))
+        server.pluginManager.callEvent(new HourChangeEvent(world, (int)hour))
+    }
+
+
+
+//
+// futures
+//
+
+    def futures = []
+    Thread futuresThread
+
+
+    synchronized void initFutures() {
+        if (futuresThread && futuresThread.alive) return
+        futuresThread = Thread.start {
+            def lastHours = [:]
+            while (enabled) {
+                server.worlds.each { w ->
+                    def curHour = (int) (w.time / 1000)
+                    if (lastHours[w.name] != curHour) {
+                        hourChange(w, curHour)
+                        lastHours[w.name] = curHour
+                    }
+                }
+                while (futures) {
+                    try {
+                        def result = futures.pop()()
+                        // if the closure returns a closure it is appended to the stack
+                        if (result instanceof Closure) futures << result
+                        sleep 10
+                    }
+                    catch (e) {}
+                }
+                sleep 50
+            }
+        }
+    }
+
 
 }

@@ -215,13 +215,20 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		def listener = [toString: {uniqueName}] as Listener
 		def typedListeners = [:]
 		typeClosureMap.each { def type, closure ->
-			if (!(type instanceof Event.Type)) type = Event.Type."${stringToType(type)}"
+            def eventType
+            try {
+                eventType = (type instanceof Event.Type) ? type : Event.Type.valueOf(stringToType(type))
+            }
+            catch (e) {
+                eventType = Event.Type.CUSTOM_EVENT
+            }
 			if (closure instanceof Closure) {
-				typedListeners[type] = closure
-                if (!registeredTypes.contains(type)) {
+                def typeName = (eventType == Event.Type.CUSTOM_EVENT ? type : eventType.toString()).toUpperCase()
+				typedListeners[typeName] = closure
+                if (!registeredTypes.contains(eventType)) {
                     // only register for any given type once (until the pluginManager can support unregistering)
-				    plugin.server.pluginManager.registerEvent(type, listener, this, priority, plugin)
-                    registeredTypes << type
+				    plugin.server.pluginManager.registerEvent(eventType, listener, this, priority, plugin)
+                    registeredTypes << eventType
                 }
 			}
 		}
@@ -245,12 +252,26 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		def name = listener.toString()
 		if (listeners.containsKey(name)) {
 			def listeners = listeners[name]
-			if (listeners.containsKey(e.type)) {
-				listeners[e.type](e)
+            def key = e.eventName.toUpperCase()
+			if (listeners.containsKey(key)) {
+				listeners[key](e)
 			}
 		}
 	}
 
+
+//
+// futures
+//
+
+    void future(Closure c) {
+        plugin.futures.add(0, c)  // pop() comes off the end so always add to the beginnig for fifo
+    }
+
+
+//
+// commands
+//
 
 	void command(String cmd, Closure c) {
 		plugin.commands[cmd] = c
