@@ -143,8 +143,8 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 		gscript.metaClass.propertyMissing = { pname ->
 			if (data.containsKey(pname)) return data[pname]
-			def globalData = plugin.runner.data
-			if (globalData.containsKey(pname)) return globalData[pname]
+			def globalData = plugin.runner?.data
+			if (globalData?.containsKey(pname)) return globalData[pname]
 			server.onlinePlayers.find { it.name.startsWith(pname) }
 		}
 
@@ -251,13 +251,26 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	void execute(Listener listener, Event e) {
 		def name = listener.toString()
 		if (listeners.containsKey(name)) {
-			def listeners = listeners[name]
+			def glisteners = listeners[name]
             def key = e.eventName.toUpperCase()
-			if (listeners.containsKey(key)) {
-				listeners[key](e)
+			if (glisteners.containsKey(key)) {
+                Closure glistener = glisteners[key]
+                if (e.respondsTo('getPlayer'))
+                    plugin.getRunner(e.player).execute(glistener, e)
+				else
+				    execute(glistener, e)
 			}
 		}
 	}
+
+    void execute(Closure closureListener, Event e) {
+        if (closureListener.maximumNumberOfParameters == 1) {
+            closureListener(e)
+        }
+        else {
+            closureListener(this, e)
+        }
+    }
 
 
 //
