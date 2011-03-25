@@ -1,9 +1,8 @@
 import org.bukkit.Material
 import org.bukkit.event.Event
-import org.bukkit.event.block.BlockRightClickEvent
+import org.bukkit.event.player.PlayerInteractEvent
 
 command 'warp', { runner, args ->
-println "warp: runner=$runner, player=$runner.player"
     def warp_name = args.join(' ')
     if (warp_name) {
         def warp_loc = runner.data.warps?."$warp_name"
@@ -11,7 +10,6 @@ println "warp: runner=$runner, player=$runner.player"
             warp_loc = runner.global.warps?."$warp_name"
         }
         if (warp_loc) {
-println "warp to $warp_loc"
             runner.data.lastloc = runner.player.location
             runner.player.teleportTo warp_loc
             warp_loc.toString()
@@ -81,9 +79,9 @@ command 'warp-public-delete', { runner, args ->
 
 [
     // right click on signs that have first line 'warp', second line is the name of the warp
-    (Event.Type.BLOCK_RIGHTCLICKED): { runner, BlockRightClickEvent it ->
-        if (it.block.type == Material.WALL_SIGN) {
-            def text = it.block.state.lines
+    (Event.Type.PLAYER_INTERACT): { runner, PlayerInteractEvent it ->
+        if (it.clickedBlock.type == Material.WALL_SIGN) {
+            def text = it.clickedBlock.state.lines
             if (text[0] == 'warp') runner.runCommand('warp', [text[1]])
         }
     }

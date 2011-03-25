@@ -249,8 +249,9 @@ class GroovyAPI {
 	}
 
 
-	static def make(String name, Location loc, int qty = 1) {
-		Class ent_cls = Class.forName("net.minecraft.server.Entity${name.capitalize()}")
+	static def make(String name, def loc, int qty = 1) {
+        loc = l(loc)
+        Class ent_cls = Class.forName("net.minecraft.server.Entity${name.capitalize()}")
 		def wH = loc.world.handle
 		def ents = []
 		for (int cntr = 0; cntr < qty; cntr++) {

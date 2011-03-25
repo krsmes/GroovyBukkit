@@ -129,7 +129,7 @@ class GroovyPlugin extends JavaPlugin
 	def registerEventHandlers() {
 		runner.listen('GroovyPlugin', [
 
-            (Event.Type.WORLD_SAVED): { WorldEvent e ->
+            (Event.Type.WORLD_SAVE): { WorldEvent e ->
                 if (enabled) {
                     runner._save()
                     playerRunners.values().each { it._save() }

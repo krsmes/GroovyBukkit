@@ -1,72 +1,91 @@
 import org.bukkit.event.Event
+import org.bukkit.event.player.*
+import org.bukkit.event.block.*
+import org.bukkit.event.server.*
+import org.bukkit.event.world.*
+import org.bukkit.event.entity.*
+import org.bukkit.event.vehicle.*
 
 
 def locstr = { String.format('Loc[xyz=%.2f:%.2f:%.2f]', it.x, it.y, it.z) }
 def blkstr = { "Blk[xyz=$it.x:$it.y:$it.z $it.type:$it.data ($it.typeId)]" }
 def entstr = { "Ent[$it(${locstr(it.location)})]" }
+def vehstr = { "Veh[$it(${locstr(it.location)})]" }
 
 listen "debug", [
 
-	(Event.Type.PLAYER_JOIN): { log "$it.eventName ($it.player.name): " },
-	(Event.Type.PLAYER_LOGIN): { log "$it.eventName ($it.player.name): " },
-	(Event.Type.PLAYER_RESPAWN): { log "$it.eventName ($it.player.name): ${locstr(it.respawnLocation)}" },
-	(Event.Type.PLAYER_KICK): { log "$it.eventName ($it.player.name): reason=$it.reason, message=$it.leaveMessage" },
-	(Event.Type.PLAYER_CHAT): { log "$it.eventName ($it.player.name): $it.message" },
-	(Event.Type.PLAYER_COMMAND_PREPROCESS): { log "$it.eventName ($it.player.name): $it.message" },
-	(Event.Type.PLAYER_QUIT): { log "$it.eventName ($it.player.name): " },
-//	(Event.Type.PLAYER_MOVE): { log "$it.eventName ($it.player.name): ${locstr(it.from)} to ${locstr(it.to)}" },
-	(Event.Type.PLAYER_ANIMATION): { log "$it.eventName ($it.player.name): $it.animationType" },
-	(Event.Type.PLAYER_TOGGLE_SNEAK): { log "$it.eventName ($it.player.name)" },
-	(Event.Type.PLAYER_ITEM): { log "$it.eventName ($it.player.name): ${blkstr(it.blockClicked)} clicked on $it.blockFace with $it.item" },
-	(Event.Type.PLAYER_EGG_THROW): { log "$it.eventName ($it.player.name): $it.numHatches $it.hatchType $it.hatching " },
-	(Event.Type.PLAYER_TELEPORT): { log "$it.eventName ($it.player.name): ${locstr(it.from)} to ${locstr(it.to)}" },
-	(Event.Type.PLAYER_ITEM_HELD): { log "$it.eventName ($it.player.name): now $it.newSlot (${it.player.inventory.getItem(it.newSlot)}) was $it.previousSlot (${it.player.inventory.getItem(it.previousSlot)})" },
-    (Event.Type.PLAYER_DROP_ITEM): { log "$it.eventName ($it.player.name): ${it.itemDrop.itemStack}" },
-	(Event.Type.PLAYER_PICKUP_ITEM): { log "$it.eventName ($it.player.name): ${it.item.itemStack}" },
+	(Event.Type.PLAYER_JOIN):           { PlayerEvent it            -> log "$it.eventName ($it.player.name)" },
+	(Event.Type.PLAYER_LOGIN):          { PlayerLoginEvent it       -> log "$it.eventName ($it.player.name): result=$it.result, kickMessage=$it.kickMessage" },
+	(Event.Type.PLAYER_RESPAWN):        { PlayerRespawnEvent it     -> log "$it.eventName ($it.player.name): ${locstr(it.respawnLocation)}" },
+	(Event.Type.PLAYER_KICK):           { PlayerKickEvent it        -> log "$it.eventName ($it.player.name): reason=$it.reason, leaveMessage=$it.leaveMessage" },
+	(Event.Type.PLAYER_CHAT):           { PlayerChatEvent it        -> log "$it.eventName ($it.player.name): $it.message" },
+	(Event.Type.PLAYER_COMMAND_PREPROCESS): { PlayerChatEvent it    -> log "$it.eventName ($it.player.name): $it.message" },
+	(Event.Type.PLAYER_QUIT):           { PlayerEvent it            -> log "$it.eventName ($it.player.name)" },
+	(Event.Type.PLAYER_ANIMATION):      { PlayerAnimationEvent it   -> log "$it.eventName ($it.player.name): $it.animationType" },
+	(Event.Type.PLAYER_TOGGLE_SNEAK):   { PlayerToggleSneakEvent it -> log "$it.eventName ($it.player.name)" },
+	(Event.Type.PLAYER_INTERACT):       { PlayerInteractEvent it    -> log "$it.eventName ($it.player.name): item=$it.item, action=$it.action, clickedBlock=${blkstr(it.clickedBlock)}, blockFace=$it.blockFace" },
+	(Event.Type.PLAYER_EGG_THROW):      { PlayerEggThrowEvent it    -> log "$it.eventName ($it.player.name): $it.numHatches $it.hatchType $it.hatching " },
+	(Event.Type.PLAYER_TELEPORT):       { PlayerMoveEvent it        -> log "$it.eventName ($it.player.name): ${locstr(it.from)} to ${locstr(it.to)}" },
+	(Event.Type.PLAYER_ITEM_HELD):      { PlayerItemHeldEvent it    -> log "$it.eventName ($it.player.name): now $it.newSlot (${it.player.inventory.getItem(it.newSlot)}) was $it.previousSlot (${it.player.inventory.getItem(it.previousSlot)})" },
+    (Event.Type.PLAYER_DROP_ITEM):      { PlayerDropItemEvent it    -> log "$it.eventName ($it.player.name): ${it.itemDrop.itemStack}" },
+	(Event.Type.PLAYER_PICKUP_ITEM):    { PlayerPickupItemEvent it  -> log "$it.eventName ($it.player.name): ${it.item.itemStack}" },
+    (Event.Type.PLAYER_BUCKET_EMPTY):   { PlayerBucketEmptyEvent it -> log "$it.eventName ($it.player.name)" },
+    (Event.Type.PLAYER_BUCKET_FILL):    { PlayerBucketFillEvent it  -> log "$it.eventName ($it.player.name)" },
 
+    (Event.Type.BLOCK_DAMAGE):          { BlockDamageEvent it       -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, instaBreak=$it.instaBreak, itemInHand=$it.itemInHand" },
+	(Event.Type.BLOCK_CANBUILD):        { BlockCanBuildEvent it     -> log "$it.eventName ${blkstr(it.block)}: $it.material, buildable=$it.buildable" },
+	(Event.Type.BLOCK_FROMTO):          { BlockFromToEvent it       -> log "$it.eventName ${blkstr(it.block)}: to=${blkstr(it.toBlock)}, face=$it.face" },
+	(Event.Type.BLOCK_IGNITE):          { BlockIgniteEvent it       -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, cause=$it.cause" },
+	(Event.Type.BLOCK_PHYSICS):         { BlockPhysicsEvent it      -> log "$it.eventName: ${blkstr(it.block)} changedType=$it.changedType" },
+	(Event.Type.BLOCK_PLACE):           { BlockPlaceEvent it        -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, blockAgainst=${blkstr(it.blockAgainst)}, itemInHand=$it.itemInHand, canBuild=${it.canBuild()})" },
+	(Event.Type.BLOCK_BURN):            { BlockBurnEvent it         -> log "$it.eventName ${blkstr(it.block)}" },
+	(Event.Type.LEAVES_DECAY):          { LeavesDecayEvent it       -> log "$it.eventName ${blkstr(it.block)}" },
+	(Event.Type.SIGN_CHANGE):           { SignChangeEvent it        -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, lines=${it.lines.join(',')}" },
+	(Event.Type.REDSTONE_CHANGE):       { BlockRedstoneEvent it     -> log "$it.eventName: ${blkstr(it.block)} $it.oldCurrent->$it.newCurrent" },
+	(Event.Type.BLOCK_BREAK):           { BlockBreakEvent it        -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name" },
 
-	(Event.Type.BLOCK_DAMAGED): { log "$it.eventName ${blkstr(it.block)}: by $it.player.name (damageLevel=$it.damageLevel)" },
-	(Event.Type.BLOCK_CANBUILD): { log "$it.eventName ${blkstr(it.block)}: $it.material (buildable=$it.buildable)" },
-	(Event.Type.BLOCK_FLOW): { log "$it.eventName ${blkstr(it.block)}: to ${blkstr(it.toBlock)} (face=$it.face)" },
-	(Event.Type.BLOCK_IGNITE): { log "$it.eventName ${blkstr(it.block)}: by $it.player.name (cause=$it.cause)" },
-//	(Event.Type.BLOCK_PHYSICS): { log "$it.eventName: ${blkstr(it.block)} to $it.changedType" },
-	(Event.Type.BLOCK_RIGHTCLICKED): { log "$it.eventName ${blkstr(it.block)}: by $it.player.name with $it.itemInHand (direction=$it.direction)" },
-	(Event.Type.BLOCK_PLACED): { log "$it.eventName ${blkstr(it.block)}: by $it.player.name against ${blkstr(it.blockAgainst)} (inHand=$it.itemInHand, canBuild=${it.canBuild()})" },
-	(Event.Type.BLOCK_INTERACT): { log "$it.eventName ${blkstr(it.block)}: by ${entstr(it.entity)}" },
-	(Event.Type.BLOCK_BURN): { log "$it.eventName ${blkstr(it.block)}" },
-	(Event.Type.LEAVES_DECAY): { log "$it.eventName ${blkstr(it.block)}" },
-	(Event.Type.SIGN_CHANGE): { log "$it.eventName ${blkstr(it.block)}: by $it.player.name (lines=${it.lines.join(',')})" },
-	(Event.Type.LIQUID_DESTROY): { log "$it.eventName: ${blkstr(it.block)}" },
-	(Event.Type.REDSTONE_CHANGE): { log "$it.eventName: ${blkstr(it.block)} $it.oldCurrent->$it.newCurrent" },
-	(Event.Type.BLOCK_BREAK): { log "$it.eventName ${blkstr(it.block)}: by $it.player.name" },
+	(Event.Type.INVENTORY_OPEN):        { PlayerInventoryEvent it   -> log "$it.eventName $it.player.name: " },
+	(Event.Type.INVENTORY_CLOSE):       { log "$it.eventName $it.player.name" },
+	(Event.Type.INVENTORY_CLICK):       { log "$it.eventName $it.player.name" },
+	(Event.Type.INVENTORY_CHANGE):      { log "$it.eventName $it.player.name" },
+	(Event.Type.INVENTORY_TRANSACTION): { log "$it.eventName $it.player.name" },
 
+	(Event.Type.PLUGIN_ENABLE):         { PluginEvent it            -> log "$it.eventName: $it.plugin.description.name" },
+	(Event.Type.PLUGIN_DISABLE):        { PluginEvent it            -> log "$it.eventName: $it.plugin.description.name" },
+    (Event.Type.SERVER_COMMAND):        { ServerCommandEvent it     -> log "$it.eventName: " },
 
-	(Event.Type.INVENTORY_OPEN): { log "$it.eventName $it.player.name: " },
-	(Event.Type.INVENTORY_CLOSE): { log "$it.eventName $it.player.name: " },
-	(Event.Type.INVENTORY_CLICK): { log "$it.eventName $it.player.name: " },
-	(Event.Type.INVENTORY_CHANGE): { log "$it.eventName $it.player.name: " },
-	(Event.Type.INVENTORY_TRANSACTION): { log "$it.eventName $it.player.name: " },
+	(Event.Type.CHUNK_GENERATION):      { log "$it.eventName" },
+	(Event.Type.ITEM_SPAWN):            { log "$it.eventName" },
+	(Event.Type.WORLD_SAVE):            { WorldEvent it             -> log "$it.eventName: $it.world" },
+	(Event.Type.WORLD_LOAD):            { WorldEvent it             -> log "$it.eventName: $it.world" },
 
+	(Event.Type.ENTITY_DEATH):          { EntityDeathEvent it       -> log "$it.eventName ${entstr(it.entity)}: drops=$it.drops" },
+	(Event.Type.ENTITY_EXPLODE):        { EntityExplodeEvent it     -> log "$it.eventName ${entstr(it.entity)}: location=${locstr(it.location)}, yield=$it.yield, blockList.size=${it.blockList().size()}" },
+	(Event.Type.EXPLOSION_PRIME):       { ExplosionPrimeEvent it    -> log "$it.eventName ${entstr(it.entity)}: radius=$it.radius, fire=$it.fire" },
+	(Event.Type.ENTITY_TARGET):         { EntityTargetEvent it      -> log "$it.eventName ${entstr(it.entity)}: target=$it.target, reason=$it.reason" },
 
-	(Event.Type.PLUGIN_ENABLE): { log "$it.eventName: $it.plugin.description.name" },
-	(Event.Type.PLUGIN_DISABLE): { log "$it.eventName: $it.plugin.description.name" },
-    (Event.Type.SERVER_COMMAND): { log "$it.eventName: " },
-
-
-//  (Event.Type.CHUNK_LOADED): { log "$it.eventName: $it.chunk" },
-//	(Event.Type.CHUNK_UNLOADED): { log "$it.eventName: $it.chunk" },
-	(Event.Type.CHUNK_GENERATION): { log "$it.eventName: " },
-	(Event.Type.ITEM_SPAWN): { log "$it.eventName: " },
-	(Event.Type.WORLD_SAVED): { log "$it.eventName: " },
-	(Event.Type.WORLD_LOADED): { log "$it.eventName: " },
-
-
-//	(Event.Type.CREATURE_SPAWN): { log "$it.eventName (${entstr(it.entity)}): " },
-//	(Event.Type.ENTITY_DAMAGED): { log "$it.eventName (${entstr(it.entity)}): $it.cause ($it.damage)" },
-	(Event.Type.ENTITY_DEATH): { log "$it.eventName (${entstr(it.entity)}): drops $it.drops" },
-//	(Event.Type.ENTITY_COMBUST): { log "$it.eventName (${entstr(it.entity)}): fireTicks=$it.entity.fireTicks" },
-	(Event.Type.ENTITY_EXPLODE): { log "$it.eventName (${entstr(it.entity)}): at ${locstr(it.location)}, yield $it.yield, blocks=${it.blockList().size()}" },
-	(Event.Type.EXPLOSION_PRIMED): { log "$it.eventName (${entstr(it.entity)}): radius=$it.radius, fire=$it.fire" },
-	(Event.Type.ENTITY_TARGET): { log "$it.eventName (${entstr(it.entity)}): $it.target (reason=$it.reason)" }
-
+    (Event.Type.VEHICLE_CREATE):        { VehicleCreateEvent it     -> log "$it.eventName ${vehstr(it.vehicle)}" },
+    (Event.Type.VEHICLE_DAMAGE):        { VehicleDamageEvent it     -> log "$it.eventName ${vehstr(it.vehicle)}: ${entstr(it.attacker)}, damage=$it.damage" },
+    (Event.Type.VEHICLE_COLLISION_ENTITY): { VehicleEntityCollisionEvent it -> log "$it.eventName ${vehstr(it.vehicle)}: ${entstr(it.entity)}" },
+    (Event.Type.VEHICLE_COLLISION_BLOCK): { VehicleBlockCollisionEvent it -> log "$it.eventName ${vehstr(it.vehicle)}: ${blkstr(it.block)}" },
+    (Event.Type.VEHICLE_ENTER):         { VehicleEnterEvent it      -> log "$it.eventName ${vehstr(it.vehicle)}" },
+    (Event.Type.VEHICLE_EXIT):          { VehicleExitEvent it       -> log "$it.eventName ${vehstr(it.vehicle)}" },
 ]
+
+if (args && args[0] == 'noisy') {
+    listen "noisy", [
+
+    	(Event.Type.PLAYER_MOVE):           { PlayerMoveEvent it        -> log "$it.eventName ($it.player.name): ${locstr(it.from)} to ${locstr(it.to)}" },
+
+        (Event.Type.CHUNK_LOAD):            { ChunkLoadEvent it         -> log "$it.eventName: $it.chunk" },
+        (Event.Type.CHUNK_UNLOAD):          { ChunkUnloadEvent it       -> log "$it.eventName: $it.chunk" },
+
+    	(Event.Type.CREATURE_SPAWN):        { CreatureSpawnEvent it     -> log "$it.eventName ${entstr(it.entity)}: creatureType=$it.creatureType" },
+    	(Event.Type.ENTITY_COMBUST):        { EntityCombustEvent it     -> log "$it.eventName ${entstr(it.entity)}: fireTicks=$it.entity.fireTicks" },
+    	(Event.Type.ENTITY_DAMAGE):         { EntityDamageEvent it      -> log "$it.eventName ${entstr(it.entity)}: cause=$it.cause, damage=$it.damage" },
+
+        (Event.Type.VEHICLE_MOVE):          { VehicleMoveEvent it       -> log "$it.eventName ${vehstr(it.vehicle)}: ${locstr(it.from)} to ${locstr(it.to)}" },
+        (Event.Type.VEHICLE_UPDATE):        { VehicleEvent it           -> log "$it.eventName ${vehstr(it.vehicle)}" }
+
+    ]
+}
