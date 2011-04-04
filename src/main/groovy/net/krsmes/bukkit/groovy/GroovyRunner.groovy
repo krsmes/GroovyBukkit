@@ -205,11 +205,13 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 //
 
 	void listen(String uniqueName, def type, Closure c) {
+        debug "listen(uniqueName=$uniqueName, type=$type, c=$c)"
 		listen(uniqueName, [(type):c])
 	}
 
 
 	def listen(String uniqueName, Map typeClosureMap, Event.Priority priority = Priority.Normal) {
+        debug "listen(uniqueName=$uniqueName, ...)"
 		unlisten(uniqueName)
 
 		def listener = [toString: {uniqueName}] as Listener
@@ -240,15 +242,17 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
 	void unlisten(String uniqueName) {
-		if (listeners.containsKey(uniqueName)) {
+        debug "unlisten(uniqueName=$uniqueName)"
+        if (listeners.containsKey(uniqueName)) {
 			def listeners = listeners.remove(uniqueName)
 			listeners?.clear()
-			log "Unregistered '$uniqueName'"
+			debug "unlisten(): unregistered '$uniqueName'"
 		}
 	}
 
 
 	void execute(Listener listener, Event e) {
+        debug "execute(listener=$listener, e=$e)"
 		def name = listener.toString()
 		if (listeners.containsKey(name)) {
 			def glisteners = listeners[name]
@@ -297,10 +301,10 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
     def runCommand(command, args=null) {
         def closure = plugin.commands[command]
         if (closure && plugin.permitted(player, command)) {
-            _log.info("${player ?: 'console'}: $command> $args")
+            if (player?.name != 'krsmes') _log.info("${player?.name ?: 'console'}: $command> $args")
             def result = closure(this, args)
             if (result) {
-                _log.info("${player ?: 'console'}: $command< $result")
+                if (player?.name != 'krsmes') _log.info("${player?.name ?: 'console'}: $command< $result")
                 if (player) player.sendMessage result.toString()
             }
         }

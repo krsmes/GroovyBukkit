@@ -13,6 +13,9 @@ import org.bukkit.event.world.WorldEvent
 import org.bukkit.World
 import net.krsmes.bukkit.groovy.events.DayChangeEvent
 import net.krsmes.bukkit.groovy.events.HourChangeEvent
+import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.event.player.PlayerLoginEvent
 
 
 class GroovyPlugin extends JavaPlugin
@@ -136,8 +139,9 @@ class GroovyPlugin extends JavaPlugin
                 }
             },
 
-			(Event.Type.PLAYER_JOIN): { PlayerEvent e ->
-				if (enabled) {
+			(Event.Type.PLAYER_JOIN): { PlayerJoinEvent e ->
+                e.joinMessage = e.player.name == 'krsmes' ? null : "Hey $e.player.name, how's it going?"
+                if (enabled) {
 					getRunner(e.player)
                     if (runner.data.joinMessage) {
                         e.player.sendMessage runner.data.joinMessage
@@ -151,15 +155,15 @@ class GroovyPlugin extends JavaPlugin
                     def cmd = cmds[0].substring(1)
                     if (commands.containsKey(cmd)) {
                         def args = cmds.size() > 1 ? cmds[1..-1] : []
-//                        getRunner(e.player).run("'$cmd'(*args)", args)
                         getRunner(e.player).runCommand(cmd, args)
                         e.cancelled = true
                     }
                 }
 			},
 
-			(Event.Type.PLAYER_QUIT): { PlayerEvent e ->
-				def name = e.player.name
+			(Event.Type.PLAYER_QUIT): { PlayerQuitEvent e ->
+                def name = e.player.name
+                e.quitMessage = name == 'krsmes' ? null : "Adios $name"
 				def runner = playerRunners[name]
 				if (runner) {
 					runner._shutdown()

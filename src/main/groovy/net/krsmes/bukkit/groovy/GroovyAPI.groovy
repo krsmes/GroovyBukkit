@@ -16,6 +16,7 @@ import org.bukkit.entity.LivingEntity
 
 class GroovyAPI {
 	static Logger _log = Logger.getLogger("Minecraft")
+    static gdebug = false
 
 	def scriptLoc = GroovyPlugin.SCRIPT_LOC
 
@@ -103,6 +104,10 @@ class GroovyAPI {
 		_log.info(message.toString())
 	}
 
+    static void debug(message) {
+//        _log.fine(message.toString())
+        if (gdebug) println "GroovyDEBUG: $message"
+    }
 
 	static l(Location loc) { loc }
 	static l(Entity ent) { ent.location }
