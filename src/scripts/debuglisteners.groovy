@@ -31,6 +31,7 @@ listen "debug", [
 	(Event.Type.PLAYER_PICKUP_ITEM):    { PlayerPickupItemEvent it  -> log "$it.eventName ($it.player.name): ${it.item.itemStack}" },
     (Event.Type.PLAYER_BUCKET_EMPTY):   { PlayerBucketEmptyEvent it -> log "$it.eventName ($it.player.name)" },
     (Event.Type.PLAYER_BUCKET_FILL):    { PlayerBucketFillEvent it  -> log "$it.eventName ($it.player.name)" },
+    (Event.Type.PLAYER_INVENTORY):      { PlayerInventoryEvent it   -> log "$it.eventName ($it.player.name): name=$it.inventory.name, size=$it.inventory.size" },
 
     (Event.Type.BLOCK_DAMAGE):          { BlockDamageEvent it       -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, instaBreak=$it.instaBreak, itemInHand=$it.itemInHand" },
 	(Event.Type.BLOCK_CANBUILD):        { BlockCanBuildEvent it     -> log "$it.eventName ${blkstr(it.block)}: $it.material, buildable=$it.buildable" },
