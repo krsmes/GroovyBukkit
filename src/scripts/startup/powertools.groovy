@@ -23,7 +23,7 @@ def killBlock(Block block) {
 
 def pickupBlock(Player player, Block block) {
     player.itemInHand = block.state.data.toItemStack(1)
-    killBlock(block)
+    if (player.sneaking) killBlock(block)
 }
 
 
@@ -82,7 +82,7 @@ def addStickClick(runner, Block block) {
         if (!runner.data.powertools || e.clickedBlock?.type in [Material.WOODEN_DOOR, Material.CHEST, Material.WORKBENCH]) return
 
         else if (e.item == null) {
-            if (e.action == Action.LEFT_CLICK_BLOCK) future { killBlock(e.clickedBlock) }
+            if (e.action == Action.LEFT_CLICK_BLOCK && e.player.sneaking) future { killBlock(e.clickedBlock) }
             if (e.action == Action.RIGHT_CLICK_BLOCK) future { pickupBlock(e.player, e.clickedBlock) }
         }
 
@@ -98,6 +98,7 @@ def addStickClick(runner, Block block) {
 
         else if (e.item.type.isBlock()) {
             if (e.action == Action.LEFT_CLICK_BLOCK) future { changeClickedBlockToItem(e.clickedBlock, e.item) }
+            if (e.action == Action.RIGHT_CLICK_BLOCK && e.player.sneaking) e.player.itemInHand.amount += 1
         }
     }
 
