@@ -8,7 +8,7 @@ import org.yaml.snakeyaml.Yaml
 import org.bukkit.entity.Player
 
 
-class GroovyRunner extends GroovyAPI implements EventExecutor {
+class GroovyRunner extends GroovyAPI implements EventExecutor, Listener {
 
 	static SCRIPT_PREFIX = """
 import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import org.bukkit.inventory.*;import org.bukkit.material.*;import org.bukkit.event.*;import org.bukkit.util.*;
@@ -214,7 +214,6 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
         debug "listen(uniqueName=$uniqueName, ...)"
 		unlisten(uniqueName)
 
-		def listener = [toString: {uniqueName}] as Listener
 		def typedListeners = [:]
 		typeClosureMap.each { def type, closure ->
             def eventType
@@ -229,7 +228,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 				typedListeners[typeName] = closure
                 if (!registeredTypes.contains(eventType)) {
                     // only register for any given type once (until the pluginManager can support unregistering)
-				    plugin.server.pluginManager.registerEvent(eventType, listener, this, priority, plugin)
+				    plugin.server.pluginManager.registerEvent(eventType, this, this, priority, plugin)
                     registeredTypes << eventType
                 }
 			}
@@ -252,11 +251,9 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
 	void execute(Listener listener, Event e) {
-        debug "execute(listener=$listener, e=$e)"
-		def name = listener.toString()
-		if (listeners.containsKey(name)) {
-			def glisteners = listeners[name]
-            def key = e.eventName.toUpperCase()
+        debug "execute(listener, e=$e)"
+        def key = e.eventName.toUpperCase()
+        listeners.values().each { glisteners ->
 			if (glisteners.containsKey(key)) {
                 Closure glistener = glisteners[key]
                 if (e.respondsTo('getPlayer'))
