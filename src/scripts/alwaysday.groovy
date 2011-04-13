@@ -1,0 +1,1 @@
+listen 'alwaysday', 'hour change', { if (it.hour==13) it.world.time=23000 }

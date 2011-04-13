@@ -16,6 +16,7 @@ command 'ptools', { runner, args ->
 }
 
 
+
 def killBlock(Block block) {
     if (block.y > 1) block.type = Material.AIR
 }
@@ -58,8 +59,8 @@ def changeClickedBlockToItem(block, item) {
 
 def stickClick(Player player, runner, Block block) {
     addStickClick(runner, block)
-    player.sendMessage("$ChatColor.DARK_PURPLE$block.x,$block.y,$block.z (${f(player)}): $block.state.data")
-    def blocks = new BlockIterator(player, 33).toList()
+    player.sendMessage("$ChatColor.DARK_PURPLE${f(player)} $block.x,$block.y,$block.z:$block.typeId $block.state.data")
+    def blocks = new BlockIterator(player, 25).toList()
     def msg = blocks[1..-1].collect { it.typeId in [0,1,2,3,4,8,9,12,13,24,60,78,79] ? it.type.toString().toLowerCase() : it.type.toString() }.join(', ')
     player.sendMessage("$ChatColor.GRAY$msg")
 }

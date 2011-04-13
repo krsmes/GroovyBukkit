@@ -18,10 +18,10 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
     GroovyShell shell
     Map vars
 
-    def global
-	def data = [:]
-	def listeners = [:]
-    def registeredTypes = []  // seeing we can't unregister listeners, this list keeps track of what types we've registered
+    Map global
+	Map<String,Object> data = [:]
+	Map<String,Closure> listeners = [:]
+    List<Event.Type> registeredTypes = []  // seeing we can't unregister listeners, this list keeps track of what types we've registered
     Player player = null
 
 
@@ -56,7 +56,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
     void _shutdown() {
-        def listenerNames = listeners.keySet() as List
+        def listenerNames = listeners.keySet().asList()
         listenerNames.each { unlisten(it) }
         _save()
     }
@@ -159,6 +159,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		vars.s = server
 		vars.global = global
 		vars.data = data
+        vars.util = net.krsmes.bukkit.groovy.Util
         shell
 	}
 

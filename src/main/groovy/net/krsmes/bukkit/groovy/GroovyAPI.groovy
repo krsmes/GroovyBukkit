@@ -13,6 +13,8 @@ import org.bukkit.util.Vector
 import org.bukkit.World
 import org.bukkit.Server
 import org.bukkit.entity.LivingEntity
+import org.bukkit.entity.CreatureType
+import net.krsmes.bukkit.groovy.Util;
 
 class GroovyAPI {
 	static Logger _log = Logger.getLogger("Minecraft")
@@ -95,6 +97,14 @@ class GroovyAPI {
 		def playerName = name.toString()
 		server.onlinePlayers.find {it.name == playerName}
 	}
+
+
+    def make(String name, def loc, int qty = 1) {
+        loc = l(loc)
+        CreatureType creatureType = CreatureType."${stringToType(name)}"
+        def ents = (1..qty).collect { world.spawnCreature(loc, creatureType) }
+        ents ? ents.size() > 1 ? ents : ents[0] : null
+    }
 
 
 // static
@@ -196,42 +206,14 @@ class GroovyAPI {
 	}
 
 
-	static Vector looking(def loc) {
+	static Vector looking(loc) {
 		loc = l(loc)
-		def yaw = loc.yaw % 360
-		if (yaw < 0) yaw += 360
-		def pitch = loc.pitch
-
-		def yawR = Math.toRadians(-yaw)
-		def pitchR = Math.toRadians(-pitch)
-		def yawSin = Math.sin(yawR)
-		def yawCos = Math.cos(yawR)
-		def pitchSin = Math.sin(pitchR)
-		def pitchCos = Math.cos(pitchR)
-
-		new Vector(yawSin * pitchCos, pitchSin, yawCos * pitchCos)
+        Util.lookingDirection(loc)
 	}
 
 
-	static Block lookingat(loc, maxDist = 128.0, precision = 0.01) {
-        def height = (loc instanceof LivingEntity) ? loc.eyeHeight : 1.62
-		loc = l(loc)
-		def head = v(loc.x, loc.y + height, loc.z)
-		def look = looking(loc)
-		def cntr = 0.0
-
-		Block blk = null
-		def type
-		def pos
-		while (cntr < maxDist) {
-			cntr += precision
-			pos = head + v(look.x * cntr, look.y * cntr, look.z * cntr)
-			blk = loc.world[pos]
-			type = blk.typeId
-			// stop if non-air or y is 1 or 127
-			if ((type > 0 && !(type in [50,55,65,66,68,78])) || pos.blockY == 127 || pos.blockY == 1) break
-		}
-		blk
+	static Block lookingat(LivingEntity ent, maxDist = 128.0, precision = 0.01) {
+        Util.lookingAtBlock(ent, maxDist, precision);
 	}
 
 
@@ -254,21 +236,9 @@ class GroovyAPI {
 	}
 
 
-	static def make(String name, def loc, int qty = 1) {
-        loc = l(loc)
-        Class ent_cls = Class.forName("net.minecraft.server.Entity${name.capitalize()}")
-		def wH = loc.world.handle
-		def ents = []
-		for (int cntr = 0; cntr < qty; cntr++) {
-			def ent = ent_cls.newInstance(wH)
-			ent.c(loc.x + 0.5f, loc.y + 1.0f, loc.z + 0.5f, 0.0f, 0.0f)
-			wH.a(ent)
-			ent.bukkitEntity.teleportTo(loc)
-
-			ents << ent.bukkitEntity
-		}
-		ents ? ents.size() > 1 ? ents : ents[0] : null
-	}
+    static Plot plot(loc1, loc2) {
+        new Plot(loc1, loc2)
+    }
 
 
 //

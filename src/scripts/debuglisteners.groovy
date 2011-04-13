@@ -7,10 +7,11 @@ import org.bukkit.event.entity.*
 import org.bukkit.event.vehicle.*
 
 
-def locstr = { String.format('Loc[xyz=%.2f:%.2f:%.2f]', it.x, it.y, it.z) }
-def blkstr = { "Blk[xyz=$it.x:$it.y:$it.z $it.type:$it.data ($it.typeId)]" }
-def entstr = { "Ent[$it(${locstr(it.location)})]" }
-def vehstr = { "Veh[$it(${locstr(it.location)})]" }
+def locstr = { it?String.format('Loc[xyz=%.2f:%.2f:%.2f]', it.x, it.y, it.z):'Loc[null] ' }
+def blkstr = { it?"Blk[xyz=$it.x:$it.y:$it.z $it.type:$it.data($it.typeId)]":'Blk[null]' }
+def entstr = { it?"Ent[$it(${locstr(it.location)})]":'Ent[null]' }
+def vehstr = { it?"Veh[$it(${locstr(it.location)})]":'Veh[null]' }
+def itmstr = { it?"Itm[${it.amount}x${it.type}:${it.typeId}]":'Itm[null]' }
 
 listen "debug", [
 
@@ -26,16 +27,17 @@ listen "debug", [
 	(Event.Type.PLAYER_INTERACT):       { PlayerInteractEvent it    -> log "$it.eventName ($it.player.name): item=$it.item, action=$it.action, clickedBlock=${blkstr(it.clickedBlock)}, blockFace=$it.blockFace" },
 	(Event.Type.PLAYER_EGG_THROW):      { PlayerEggThrowEvent it    -> log "$it.eventName ($it.player.name): $it.numHatches $it.hatchType $it.hatching " },
 	(Event.Type.PLAYER_TELEPORT):       { PlayerTeleportEvent it    -> log "$it.eventName ($it.player.name): ${locstr(it.from)} to ${locstr(it.to)}" },
-	(Event.Type.PLAYER_ITEM_HELD):      { PlayerItemHeldEvent it    -> log "$it.eventName ($it.player.name): now $it.newSlot (${it.player.inventory.getItem(it.newSlot)}) was $it.previousSlot (${it.player.inventory.getItem(it.previousSlot)})" },
-    (Event.Type.PLAYER_DROP_ITEM):      { PlayerDropItemEvent it    -> log "$it.eventName ($it.player.name): ${it.itemDrop.itemStack}" },
-	(Event.Type.PLAYER_PICKUP_ITEM):    { PlayerPickupItemEvent it  -> log "$it.eventName ($it.player.name): ${it.item.itemStack}" },
+	(Event.Type.PLAYER_ITEM_HELD):      { PlayerItemHeldEvent it    -> log "$it.eventName ($it.player.name): now $it.newSlot (${itmstr(it.player.inventory.getItem(it.newSlot))}) was $it.previousSlot (${itmstr(it.player.inventory.getItem(it.previousSlot))})" },
+    (Event.Type.PLAYER_DROP_ITEM):      { PlayerDropItemEvent it    -> log "$it.eventName ($it.player.name): ${itmstr(it.itemDrop.itemStack)}" },
+	(Event.Type.PLAYER_PICKUP_ITEM):    { PlayerPickupItemEvent it  -> log "$it.eventName ($it.player.name): ${itmstr(it.item.itemStack)}" },
     (Event.Type.PLAYER_BUCKET_EMPTY):   { PlayerBucketEmptyEvent it -> log "$it.eventName ($it.player.name)" },
     (Event.Type.PLAYER_BUCKET_FILL):    { PlayerBucketFillEvent it  -> log "$it.eventName ($it.player.name)" },
     (Event.Type.PLAYER_INVENTORY):      { PlayerInventoryEvent it   -> log "$it.eventName ($it.player.name): name=$it.inventory.name, size=$it.inventory.size" },
+    (Event.Type.PLAYER_BED_ENTER):      { PlayerBedEnterEvent it    -> log "$it.eventName ($it.player.name): bed=${blkstr(it.bed)}" },
+    (Event.Type.PLAYER_BED_LEAVE):      { PlayerBedLeaveEvent it    -> log "$it.eventName ($it.player.name): bed=${blkstr(it.bed)}" },
 
     (Event.Type.BLOCK_DAMAGE):          { BlockDamageEvent it       -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, instaBreak=$it.instaBreak, itemInHand=$it.itemInHand" },
 	(Event.Type.BLOCK_CANBUILD):        { BlockCanBuildEvent it     -> log "$it.eventName ${blkstr(it.block)}: $it.material, buildable=$it.buildable" },
-	(Event.Type.BLOCK_FROMTO):          { BlockFromToEvent it       -> log "$it.eventName ${blkstr(it.block)}: to=${blkstr(it.toBlock)}, face=$it.face" },
 	(Event.Type.BLOCK_IGNITE):          { BlockIgniteEvent it       -> log "$it.eventName ${blkstr(it.block)}: by $it.player?.name, cause=$it.cause" },
 	(Event.Type.BLOCK_PLACE):           { BlockPlaceEvent it        -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, blockAgainst=${blkstr(it.blockAgainst)}, itemInHand=$it.itemInHand, canBuild=${it.canBuild()})" },
 	(Event.Type.BLOCK_BURN):            { BlockBurnEvent it         -> log "$it.eventName ${blkstr(it.block)}" },
@@ -78,6 +80,7 @@ if (args && args[0] == 'noisy') {
     	(Event.Type.PLAYER_MOVE):           { PlayerMoveEvent it        -> log "$it.eventName ($it.player.name): ${locstr(it.from)} to ${locstr(it.to)}" },
 
         (Event.Type.BLOCK_PHYSICS):         { BlockPhysicsEvent it      -> log "$it.eventName: ${blkstr(it.block)} changedType=$it.changedType" },
+        (Event.Type.BLOCK_FROMTO):          { BlockFromToEvent it       -> log "$it.eventName ${blkstr(it.block)}: to=${blkstr(it.toBlock)}, face=$it.face" },
 
         (Event.Type.CHUNK_LOAD):            { ChunkLoadEvent it         -> log "$it.eventName: $it.chunk" },
         (Event.Type.CHUNK_UNLOAD):          { ChunkUnloadEvent it       -> log "$it.eventName: $it.chunk" },
