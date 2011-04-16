@@ -10,7 +10,7 @@ import java.util.Arrays;
 
 public class Util {
 
-    static final int[] SEETHRU = new int[] {0, 50, 55, 65, 66, 68, 78};
+    static final int[] SEETHRU = new int[] {50, 55, 65, 66, 68, 78};
 
 
     public static Block lookingAtBlock(LivingEntity ent, double maxDist, double precision) {
@@ -42,7 +42,7 @@ public class Util {
                     break;
                 }
                 int typeId = result.getTypeId();
-                if (Arrays.binarySearch(SEETHRU, typeId) < 0) {
+                if (typeId > 0 && Arrays.binarySearch(SEETHRU, typeId) < 0) {
                     break;
                 }
                 lastX = x;

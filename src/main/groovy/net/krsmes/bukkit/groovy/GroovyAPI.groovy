@@ -208,7 +208,7 @@ class GroovyAPI {
 
 	static Vector looking(loc) {
 		loc = l(loc)
-        Util.lookingDirection(loc)
+        loc.direction
 	}
 
 

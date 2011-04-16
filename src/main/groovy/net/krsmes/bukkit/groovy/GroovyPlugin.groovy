@@ -68,7 +68,7 @@ class GroovyPlugin extends JavaPlugin
 			def player = sender instanceof Player ? sender : null
             if (permitted(player, command.name)) {
                 def result = "command_${command.name}"(player, args?.toList())
-                if (result) sender.sendMessage result.toString()
+                if (result != null) sender.sendMessage result.toString()
                 return true
             }
 		}
@@ -140,7 +140,7 @@ class GroovyPlugin extends JavaPlugin
             },
 
 			(Event.Type.PLAYER_JOIN): { PlayerJoinEvent e ->
-                e.joinMessage = e.player.name == 'krsmes' ? null : "Hey $e.player.name, how's it going?"
+                if (e.player.name == 'krsmes') e.joinMessage = null
                 if (enabled) {
 					getRunner(e.player)
                     if (runner.data.joinMessage) {
@@ -163,7 +163,7 @@ class GroovyPlugin extends JavaPlugin
 
 			(Event.Type.PLAYER_QUIT): { PlayerQuitEvent e ->
                 def name = e.player.name
-                e.quitMessage = name == 'krsmes' ? null : "Adios $name"
+                if (name == 'krsmes') e.quitMessage = null
 				def runner = playerRunners[name]
 				if (runner) {
 					runner._shutdown()
