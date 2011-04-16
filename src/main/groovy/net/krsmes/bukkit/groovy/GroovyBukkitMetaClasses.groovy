@@ -83,9 +83,15 @@ class GroovyBukkitMetaClasses
 		Player.metaClass.asType = { Class c ->
 			if (c == Vector.class) return new Vector(delegate.location.x, delegate.location.y, delegate.location.z)
 		}
+        Player.metaClass.getRunner = { ->
+            delegate.server.pluginManager.getPlugin('GroovyPlugin').playerRunners[delegate.name]
+        }
+        Player.metaClass.getData = {->
+            delegate.runner.data
+        }
 
 
-		Vector.metaClass.plus = { amt -> delegate.add(amt) }
+        Vector.metaClass.plus = { amt -> delegate.add(amt) }
 		Vector.metaClass.minus = { amt -> delegate.subtract(amt) }
 		Vector.metaClass.toString = {->
 			String.format('Vec[xyz=%.1f:%.1f:%.1f]', delegate.x, delegate.y, delegate.z)

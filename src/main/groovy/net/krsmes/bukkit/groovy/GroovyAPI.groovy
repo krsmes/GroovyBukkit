@@ -14,7 +14,6 @@ import org.bukkit.World
 import org.bukkit.Server
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.CreatureType
-import net.krsmes.bukkit.groovy.Util;
 
 class GroovyAPI {
 	static Logger _log = Logger.getLogger("Minecraft")
@@ -236,8 +235,8 @@ class GroovyAPI {
 	}
 
 
-    static Plot plot(loc1, loc2) {
-        new Plot(loc1, loc2)
+    static Area area(loc1, loc2) {
+        new Area(loc1, loc2)
     }
 
 

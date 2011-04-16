@@ -2,6 +2,16 @@ import org.bukkit.Material
 import org.bukkit.event.Event
 import org.bukkit.event.player.PlayerInteractEvent
 
+command 'warp-help', { runner, args ->
+	def player = runner.player
+	player.sendMessage "/warp : list available warps"
+	player.sendMessage "/warp NAME : jump to warp"
+	player.sendMessage "/warp-create NAME : create private warp"
+	player.sendMessage "/warp-back : jump to where you were"
+	player.sendMessage "/warp-delete NAME : delete warp"
+}
+
+
 command 'warp', { runner, args ->
     def warp_name = args.join(' ')
     if (warp_name) {

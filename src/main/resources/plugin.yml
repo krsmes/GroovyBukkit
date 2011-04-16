@@ -1,4 +1,4 @@
-name: Groovy Plugin
+name: GroovyPlugin
 main: net.krsmes.bukkit.groovy.GroovyPlugin
 version: 0.4
 commands:

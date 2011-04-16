@@ -33,7 +33,10 @@ class GroovyBukkitRepresenter extends Representer
 				else if (data instanceof Player) {
 					value = "p(\"$data.name\")"
 				}
-				representScalar(new Tag('!g'), value)
+                else if (data instanceof Area) {
+                    value = "area($data.minX, $data.maxX, $data.minZ, $data.maxZ)"
+                }
+                representScalar(new Tag('!g'), value)
 			}
 		] as Represent
 
