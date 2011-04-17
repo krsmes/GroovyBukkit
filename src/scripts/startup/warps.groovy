@@ -19,6 +19,9 @@ command 'warp', { runner, args ->
         if (!warp_loc) {
             warp_loc = runner.global.warps?."$warp_name"
         }
+        if (!warp_loc) {
+            warp_loc = runner.global.plots?.findPlot(warp_name)?.home
+        }
         if (warp_loc) {
             runner.data.lastloc = runner.player.location
             runner.player.teleportTo warp_loc

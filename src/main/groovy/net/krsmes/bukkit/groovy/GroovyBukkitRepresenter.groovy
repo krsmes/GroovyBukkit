@@ -19,7 +19,7 @@ class GroovyBukkitRepresenter extends Representer
 			representData: { data ->
 				String value = null
 				if (data instanceof Location) {
-					value = "l($data.x, $data.y, $data.z, $data.yaw, $data.pitch)"
+					value = gLocation(data)
 				}
 				else if (data instanceof Vector) {
 					value = "v($data.x, $data.y, $data.z)"
@@ -34,7 +34,10 @@ class GroovyBukkitRepresenter extends Representer
 					value = "p(\"$data.name\")"
 				}
                 else if (data instanceof Area) {
-                    value = "area($data.minX, $data.maxX, $data.minZ, $data.maxZ)"
+                    value = gArea(data)
+                }
+                else if (data instanceof Plot) {
+                    value = gPlot(data)
                 }
                 representScalar(new Tag('!g'), value)
 			}
@@ -45,6 +48,18 @@ class GroovyBukkitRepresenter extends Representer
 		representers[Material.class] = rep
 		representers[ItemStack.class] = rep
 		representers[CraftPlayer.class] = rep
+		representers[Area.class] = rep
+		representers[Plot.class] = rep
 	}
 
+    static gLocation(data) { "l($data.x, $data.y, $data.z, $data.yaw, $data.pitch)" }
+
+    static gArea(data) { "area($data.minX, $data.maxX, $data.minZ, $data.maxZ)" }
+
+    static gPlot(data) {
+        "plot([name: \"$data.name\",${data.owner ? ' owner: "' + data.owner + '",' : ''} open: $data.open, " +
+                "${data.home ? 'home: ' + gLocation(data.home) + ',': ''} startDepth: $data.startDepth, " +
+                "visitors: [${data.visitors?.collect {"\"$it\"" }?.join(', ')}], " +
+                "areas: [${data.areas?.collect { gArea(it) }?.join(', ')}]"+
+                "])" }
 }

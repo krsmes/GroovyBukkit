@@ -26,6 +26,7 @@ class GroovyPlugin extends JavaPlugin
 	static STARTUP_LOC = SCRIPT_LOC + 'startup/'
 	static SCRIPT_SUFFIX = '.groovy'
 
+    static GroovyPlugin instance
 	static def enabled
 
 	def commands = [:]
@@ -35,9 +36,12 @@ class GroovyPlugin extends JavaPlugin
 
 
 	void onEnable() {
+        instance = this
 		enabled = true
 		GroovyBukkitMetaClasses.enable()
 		runner = new GroovyRunner(this, [:])._init()
+        runner.data.plots = Plots.create(this, runner.data)
+
 		registerEventHandlers()
         initFutures()
 		log.info("${description.name} ${description.version} enabled")
@@ -52,6 +56,7 @@ class GroovyPlugin extends JavaPlugin
             playerRunners.clear()
             runner._shutdown()
             enabled = false
+            instance = null
             GroovyBukkitMetaClasses.disable()
             log.info("${description.name} ${description.version} disabled")
         }
@@ -101,7 +106,7 @@ class GroovyPlugin extends JavaPlugin
 // player stuff
 //
 
-	def getRunner(Player player) {
+	GroovyRunner getRunner(Player player) {
 		def result
 		if (player) {
 			def name = player.name
@@ -119,6 +124,10 @@ class GroovyPlugin extends JavaPlugin
 		}
 		result
 	}
+
+    Map<String,Object> getData(Player player) {
+        getRunner(player).data
+    }
 
 
 	def permitted(player, command) {

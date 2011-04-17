@@ -28,7 +28,31 @@ public class Area implements Serializable {
         this(blk1.getX(), blk2.getX(), blk1.getZ(), blk2.getZ());
     }
 
-    boolean contains(int x, int z) {
+    public int getWidth() {
+        return (maxX - minX) + 1;
+    }
+
+    public int getDepth() {
+        return (maxZ - minZ) + 1;
+    }
+
+    public int getSize() {
+        return ((maxX - minX) + 1) * ((maxZ - minZ) + 1);
+    }
+
+    public int getCenterX() {
+        return minX + (getWidth() / 2);
+    }
+
+    public int getCenterZ() {
+        return minZ + (getDepth() / 2);
+    }
+
+    public boolean intersects(Area a) {
+        return a.contains(minX, minZ) || a.contains(maxX, maxZ);
+    }
+
+    public boolean contains(int x, int z) {
         return (x >= minX && x <= maxX) && (z >= minZ && z <= maxZ);
     }
 

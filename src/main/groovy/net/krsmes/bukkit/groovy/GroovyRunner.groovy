@@ -183,6 +183,45 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		make(name, world.spawnLocation, qty)
 	}
 
+    List<Plot> findOwnedPlots(player) {
+        Plots.instance.findOwnedPlots(player.name)
+    }
+
+    Plot findPlot(int x, int z) {
+        Plots.instance.findPlot(x, z)
+    }
+
+    Plot findPlot(String name) {
+        Plots.instance.findPlot(name)
+    }
+
+    Plot findPlot(loc) {
+        Plots.instance.findPlot(l(loc))
+    }
+
+    def removePlot(String name) {
+        Plots.instance.removePlot(name)
+    }
+
+    Plot plot(name, area) {
+        def plot = findPlot(name)
+        if (plot) {
+            plot.addArea(area)
+        }
+        else {
+            if (!name.equalsIgnoreCase(Plot.PUBLIC_PLOT_NAME)) {
+                plot = new Plot(name, area)
+                plot.home = l(area.centerX, area.centerZ)
+                Plots.instance.addPlot(plot)
+            }
+        }
+        plot
+    }
+
+    Plot plot(name, loc1, loc2) {
+        plot(name, area(l(loc1), l(loc2)))
+    }
+
 
 //
 // yaml

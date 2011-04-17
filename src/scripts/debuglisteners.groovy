@@ -17,6 +17,7 @@ listen "debug", [
 
 	(Event.Type.PLAYER_JOIN):           { PlayerJoinEvent it        -> log "$it.eventName ($it.player.name): joinMessage=$it.joinMessage" },
 	(Event.Type.PLAYER_LOGIN):          { PlayerLoginEvent it       -> log "$it.eventName ($it.player.name): result=$it.result, kickMessage=$it.kickMessage" },
+	(Event.Type.PLAYER_PRELOGIN):       { PlayerPreLoginEvent it    -> log "$it.eventName ($it.name): result=$it.result, kickMessage=$it.kickMessage" },
 	(Event.Type.PLAYER_RESPAWN):        { PlayerRespawnEvent it     -> log "$it.eventName ($it.player.name): ${locstr(it.respawnLocation)}" },
 	(Event.Type.PLAYER_KICK):           { PlayerKickEvent it        -> log "$it.eventName ($it.player.name): reason=$it.reason, leaveMessage=$it.leaveMessage" },
 	(Event.Type.PLAYER_CHAT):           { PlayerChatEvent it        -> log "$it.eventName ($it.player.name): $it.message" },
