@@ -1,11 +1,14 @@
 // presents all available scripting variables
-log "global=$global"  // map available to all scripts/players
-log "data=$data"  // map unique per player
-log "pl=$pl"  // map of all online players
-log "w=$w"  // current world
-log "here=$here"  // current location
-log "fac=$fac"  // BlockFacing direction based on yaw
-log "x=$x"  // blockX (int)
-log "y=$y"  // blockY (int)
-log "z=$z"  // blockZ (int)
-log "blk=$blk"  // block player is standing on
+[
+"g=$g",  // groovy runner
+"s=$s",  // current server
+"w=$w",  // current world
+"spawn=$spawn",  // current world spawn location
+"pl=${pl.keySet()}",  // map of all online players
+"me=$me",  // current player
+"here=$here",  // current location
+"at=$at", // target block
+"x,y,z=$x,$y,$z", // integer xyz location
+"fac=$fac",  // BlockFacing direction based on yaw
+"blk=$blk",  // block player is standing on
+].each { me.sendMessage(it) }

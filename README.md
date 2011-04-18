@@ -42,8 +42,8 @@ Groovy will have to be added to the classpath for running craftbukkit/mineserver
 At start up an info message should be displayed:
 
     [INFO]
-    [INFO] Registered 'GroovyPlugin' with 3 listener(s): [PLAYER_JOIN, PLAYER_COMMAND, PLAYER_QUIT]
-	[INFO] Groovy Plugin 0.3.x enabled
+    [INFO] Registered 'GroovyPlugin' with X listener(s): [...]
+	[INFO] Groovy Plugin 0.4.x enabled
 
 
 Using
@@ -89,6 +89,11 @@ You'll probably want to grant that use permission to use the 'permit' command to
 This way playername can grant permissions from within minecraft:
     /permit anotherplayer g
 
+Once you start using permissions and creating additional commands, you can easily assign either
+all players to a permission:
+    /permit * command
+or all permissions to a player:
+    /permit someplayer *
 
 
 API
@@ -128,11 +133,11 @@ And some custom methods are available for use:
     [] e(name) -- return a list of all entities with the given name ('Pig', 'Spider', etc)
     msg(player, text)
     msg([player1, ...], text)
-    Player p(name)
+    Player p(name) -- find player with 'name', note: 'name' does not have to be complete, it can be just the first few letters
 
     log(message)
-    ItemStack i(material) --
-    ItemStack i(material, qty)
+    ItemStack i(material) -- create a 1 item stack
+    ItemStack i(material, qty) -- create an item stack with the given quantity
     ItemStack i(material, data, qty)
     Material m(obj) -- return a Material from the given parameter (3, 'Stone', a block, a location of a block, etc)
     Byte md(obj) -- like m(obj) but return the data byte
@@ -142,16 +147,16 @@ And some custom methods are available for use:
     Vector v(x,y,z)
     Vector v(obj)
 
-    BlockFace f(entity)
-    BlockFace f(location)
-    BlockFace f(yaw)
+    BlockFace f(entity) -- get the direction (BlockFace) the entity is facing
+    BlockFace f(location) -- get the direction (BlockFace) the location is facing
+    BlockFace f(yaw) -- get the direction (BlockFace) from the given yaw
 
     Vector looking(location)
     Block lookingat(location)
     Block lookingat(location, distance)
     Block lookingat(location, distance, precision)
 
-    dist(from, to)
+    dist(from, to) -- give the distance (in blocks) between two locations
 
     give(player, item)
     give(player, item, qty)
@@ -197,12 +202,12 @@ MetaClass support (see groovy documentation about metaclasses):
         getAt(pos) -- return a Block at the given pos (location, vector, entity, etc)
         putAt(pos, b) -- set the block at the given pos, b is an item, block, material, or location of a block
 
-this allows doing scripts like:
-    /g w[loc] = m('Stone')
+        this allows doing scripts like:
+            /g w[someloc] = m('Stone')
 
     Inventory
-        getAt
-        putAt
+        getAt -- for "inv[9]" support
+        putAt -- for "inv[9]=i('diamond',16)" support
         <<
         >>
         as List
@@ -232,7 +237,7 @@ Would look for http://192.168.1.99/~path/minecraft/morning.groovy and execute it
 Example
 -------
 If you are below ground and want to teleport yourself above ground:
-	/g me.teleportTo l(x,z)
+	/g me.teleport l(x,z)
 
 Send you a message whenever a block ignites:
 	/g listen 'msgignite', 'block ignite' { p.sendMessage "${it.cause} lit ${it.block}" }
@@ -243,12 +248,57 @@ Cancel entities from exploding:
 Figure out what kind of biome you are in:
 	/g blk.biome
 
+Change the type of block above the block you are looking at
+    /g (at+1).type=m('fence')
+
+
+Scripts in startup/
+-------------------
+There are a set of default scripts in scripts/startup.  They are not critical to using GroovyBukkit
+generically, but they do provide additional functionality and are good examples to work from.
+
+Note: in Groovy the last statement in a function (or in a script) is what gets returned (no need to
+add the 'return' keyword).  If the 'return' result of a script in the startup directory is a Map,
+GroovyBukkit will assume that it is a map of event listeners and register it (with the name of the script).
+
+* eat4health
+    - decrements each online player's health by 1 (half a heart) every 6 minecraft hours, forcing users to eat once in a while
+* give
+    - a reimplementation of the '/give' command, see comments at the top of give.groovy
+* permissions
+    - implementation of the '/permit' command, see comments at the top of permissions.groovy
+* plots
+    - a full plot creation and protection set of commands and listeners
+* powertools
+    - a set of listeners to give special powers to certain items in your hand (with a /ptools command to turn them on and off)
+* stats
+    - listeners and '/stats' command to keep track of who logs into your server (online time, logins, respawns, etc.)
+* time
+    - commands to set time of day: /sunrise, /morning, /noon, /sunset, /night
+* warps
+    - warp releated commands (supports both private and public warps), and listner for sign warps
+
+
+REMEMBER! for commands (like /warp or /give etc) you have to give users permission to use those commands:
+    /permit soandso ptools
+    /permit * warp-help warp warp-back warp-create warp-delete
+
+
+
+
 
 Notes
 -----
 * /g commands auto import most of the org.bukkit subpackages
 * 'global' gets persisted (and loaded) to/from scripts/startup/data.yml
 * 'data' gets persisted to/from scripts/PlayerName/data.yml
-* look in src/scripts for many examples
-    - startup/permissions.groovy has the implementation of the /permit command
-    - startup/whitelist.groovy has the implementation of the /whitelist command and a listener
+* look in src/scripts for many other examples
+    - attract.groovy : cause an entity (cow, pig, etc) to follow you
+    - alwaysday.groovy : '/g alwaysday()' at sunset flip to sunrise
+    - debug.groovy : '/g debug()' show available variables and their values
+    - debuglisteners.groovy : '/g debuglisteners()' listen to all non-noisy bukkit events (to console log)
+    - fill.groovy : '/g fill DEPTH, HEIGHT, WIDTH, MATERIAL' to fill an area
+    - stairsup.groovy : /g stairsup()' create steps from current location up to air
+    - tree.groovy : '/g tree()' create a tree where you're looking
+    - wool.groovy : '/g inv << wool('brown', 5)' create itemstacks of colored wool
+

@@ -18,6 +18,10 @@ Examples:
     give krsmes 64 arrow
         give krsmes 64 arrows
 
+Notes:
+    'player' does not need to be a full name... for player piMasterXYZMinecraftGod you can simplify to /give pi bow
+    'material' can be a number or a name... if name is used it should match names in the Material enum
+
  */
 command 'give', { runner, args ->
 	// give player qty material

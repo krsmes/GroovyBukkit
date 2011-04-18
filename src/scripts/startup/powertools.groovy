@@ -6,13 +6,62 @@ import org.bukkit.block.Block
 import org.bukkit.entity.Player
 import org.bukkit.util.BlockIterator
 import org.bukkit.block.BlockFace
+/*
+Command: ptools
 
+Arguments: on|off|help
+
+Examples:
+    ptools on
+        turn powertools on
+    ptools off
+        turn powertools off
+    ptools help
+        show powertools help
+
+Usage:
+    With powertools turned on (/ptools on) there are several changes to default behavior depending
+    on what is in your hand:
+
+    Empty hand:
+        Left-Click on block while sneaking (Shift) -- destroy the block clicked on (you don't get to pick it up)
+        Right-Click on block -- copy block clicked on to your hand
+            ...while sneaking (Shift) -- pick up block clicked on
+
+    Stick in hand:
+        Right-Click air -- jump (teleport) to distant block (if there is air directly above it)
+        Right-Click on block -- show information on clicked on block (and blocks behind it)
+        Left-Click on block -- increment data value of block clicked on (cycles through 0..15)
+            ...while sneaking (Shift) -- duplicate the block clicked on on the face clicked on
+
+    Any block in hand:
+        Left-Click on block -- change clicked on block to the type of block in your hand (including data)
+        Right-Click on block (place) -- place the block but don't decrease quantity in hand (infinite block)
+
+
+ */
 
 command 'ptools', { runner, args ->
 
     if (args && args.size() == 1) {
-        runner.data.powertools = (args[0] == 'on')
-        runner.player.sendMessage("PowerTools ${runner.data.powertools?'ON':'OFF'}")
+        if (args[0] == 'help') {
+            [
+                "/ptools on|off : turn powertools on or off",
+                "Hand-Sneak-Click : destroy block",
+                "Hand-RightClick : copy block to hand",
+                "Hand-Sneak-RightClick : pick up block",
+                "Stick-RightClick-Air : teleport to target",
+                "Stick-RightClick : show block info",
+                "Stick-Click : cycle block data",
+                "Stick-Sneak-Click : duplicate block",
+                "Block-Click : change block to block in hand",
+                "Block-RightClick : infinite place block"
+            ].each { runner.player.sendMessage(it) }
+        }
+        else {
+            runner.data.powertools = (args[0] == 'on')
+            "PowerTools ${runner.data.powertools?'ON':'OFF'}"
+        }
     }
 }
 

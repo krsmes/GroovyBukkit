@@ -1,4 +1,6 @@
-
+/*
+(this is a work in progress, and it requires powertools to do the 'stick-clicks')
+ */
 
 command 'copy', { runner, args ->
     def data = runner.data
