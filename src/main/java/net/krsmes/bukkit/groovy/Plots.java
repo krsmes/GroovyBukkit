@@ -55,7 +55,6 @@ public class Plots implements EventExecutor, Listener {
         log.info("Plots: registering");
         plugin.getServer().getPluginManager().registerEvent(Event.Type.PLAYER_MOVE, this, this, Event.Priority.High, plugin);
         plugin.getServer().getPluginManager().registerEvent(Event.Type.PLAYER_TELEPORT, this, this, Event.Priority.High, plugin);
-        plugin.getServer().getPluginManager().registerEvent(Event.Type.PLAYER_JOIN, this, this, Event.Priority.High, plugin);
     }
 
     public void execute(Listener listener, Event event) {

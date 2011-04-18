@@ -5,6 +5,7 @@ import org.bukkit.event.block.Action
 import org.bukkit.block.Block
 import org.bukkit.entity.Player
 import org.bukkit.util.BlockIterator
+import org.bukkit.block.BlockFace
 
 
 command 'ptools', { runner, args ->
@@ -57,6 +58,13 @@ def changeClickedBlockToItem(block, item) {
 }
 
 
+def duplicateBlock(Block block, BlockFace face) {
+    def dup = block + face
+    dup.type = block.type
+    dup.data = block.data
+}
+
+
 def stickClick(Player player, runner, Block block) {
     addStickClick(runner, block)
     player.sendMessage("$ChatColor.DARK_PURPLE${f(player)} $block.x,$block.y,$block.z:$block.typeId $block.state.data")
@@ -84,22 +92,19 @@ def addStickClick(runner, Block block) {
 
         else if (e.item == null) {
             if (e.action == Action.LEFT_CLICK_BLOCK && e.player.sneaking) future { killBlock(e.clickedBlock) }
-            if (e.action == Action.RIGHT_CLICK_BLOCK) future { pickupBlock(e.player, e.clickedBlock) }
-        }
-
-        else if (e.item.type == Material.BUCKET) {
-            if (e.action == Action.RIGHT_CLICK_BLOCK) future { addClickedBlockToInventory(e.player, e.clickedBlock, 16) }
+            else if (e.action == Action.RIGHT_CLICK_BLOCK) future { pickupBlock(e.player, e.clickedBlock) }
         }
 
         else if (e.item.type == Material.STICK) {
             if (e.action == Action.RIGHT_CLICK_AIR) future { jumpToTarget(e.player) }
-            if (e.action == Action.RIGHT_CLICK_BLOCK) future { stickClick(e.player, runner, e.clickedBlock) }
-            if (e.action == Action.LEFT_CLICK_BLOCK) future { incrementData(e.clickedBlock) }
+            else if (e.action == Action.RIGHT_CLICK_BLOCK) future { stickClick(e.player, runner, e.clickedBlock) }
+            else if (e.action == Action.LEFT_CLICK_BLOCK && !e.player.sneaking) future { incrementData(e.clickedBlock) }
+            else if (e.action == Action.LEFT_CLICK_BLOCK) future { duplicateBlock(e.clickedBlock, e.blockFace) }
         }
 
         else if (e.item.type.isBlock()) {
             if (e.action == Action.LEFT_CLICK_BLOCK) future { changeClickedBlockToItem(e.clickedBlock, e.item) }
-            if (e.action == Action.RIGHT_CLICK_BLOCK && e.player.sneaking) e.player.itemInHand.amount += 1
+            else if (e.action == Action.RIGHT_CLICK_BLOCK && e.player.sneaking) e.player.itemInHand.amount += 1
         }
     }
 

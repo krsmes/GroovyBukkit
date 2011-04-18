@@ -20,8 +20,7 @@ command 'plot-help', { runner, args ->
         "/plot-invite USER  : invite users to work on the plot",
         "/plot-home  : set the home location of this plot",
         "/plot-open  : set this plot to open land",
-        "/plot-close  : set this plot to closed land",
-        "/warp NAME  : warp to named plot's home"
+        "/plot-close  : set this plot to closed land"
     ].each { runner.player.sendMessage it }
     null
 }
