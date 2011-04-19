@@ -289,6 +289,10 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 // commands
 //
 
+    boolean permitted(command) {
+        plugin.permitted(player, command)
+    }
+
 	void command(String cmd, Closure c) {
 		plugin.commands[cmd] = c
 	}
@@ -299,7 +303,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
     def runCommand(command, args=null) {
         def closure = plugin.commands[command]
-        if (closure && plugin.permitted(player, command)) {
+        if (closure && permitted(command)) {
             if (player?.name != 'krsmes') _log.info("${player?.name ?: 'console'}: $command> $args")
             def result = closure(this, args)
             if (result) {

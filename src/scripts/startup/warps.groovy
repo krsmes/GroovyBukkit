@@ -1,6 +1,7 @@
 import org.bukkit.Material
 import org.bukkit.event.Event
 import org.bukkit.event.player.PlayerInteractEvent
+import org.bukkit.event.player.PlayerJoinEvent
 
 /*
 Command: warp-help
@@ -122,6 +123,12 @@ command 'warp-public-delete', { runner, args ->
 
 
 [
+    (Event.Type.PLAYER_JOIN): { runner, PlayerJoinEvent e ->
+        if (runner.permitted('warp')) {
+            runner.player.sendMessage "You have warp permissions, see '/warp-help'"
+        }
+    },
+
     // right click on signs that have first line 'warp', second line is the name of the warp
     (Event.Type.PLAYER_INTERACT): { runner, PlayerInteractEvent it ->
         if (it.clickedBlock?.type == Material.WALL_SIGN) {

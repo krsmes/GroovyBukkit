@@ -273,7 +273,7 @@ command 'plot-max', { runner, args ->
             runner.data.plotShow = true
         }
         if (global.plotProtection) {
-            runner.player.sendMessage "This server has plot protection, see /plot-help"
+            runner.player.sendMessage "This server has plot protection, see '/plot-help'"
         }
     },
 

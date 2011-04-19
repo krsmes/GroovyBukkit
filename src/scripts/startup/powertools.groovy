@@ -7,6 +7,7 @@ import org.bukkit.entity.Player
 import org.bukkit.util.BlockIterator
 import org.bukkit.block.BlockFace
 import org.bukkit.event.Event.Result
+import org.bukkit.event.player.PlayerJoinEvent
 /*
 Command: ptools
 
@@ -134,6 +135,11 @@ def addStickClick(runner, Block block) {
 
 
 [
+    (Event.Type.PLAYER_JOIN): { runner, PlayerJoinEvent e ->
+        if (runner.permitted('ptools')) {
+            runner.player.sendMessage "You have ptools permissions, see '/ptools help'"
+        }
+    },
 
     (Event.Type.PLAYER_INTERACT): { runner, PlayerInteractEvent e ->
 //        debug "powertools(${runner.data.powertools ? 'ON' : 'OFF'}): $e.eventName ($e.player.name): item=$e.item, action=$e.action, clickedBlock=$e.clickedBlock, blockFace=$e.blockFace, useBlock=${e.useInteractedBlock()}"

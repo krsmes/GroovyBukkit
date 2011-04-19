@@ -6,12 +6,13 @@ def playerStatsToString = { stats ->
 }
 
 def getPlayerStats(player) {
+    def playerStats = null
     def stats = global.stats
     if (!stats) {
         stats = [:]
         global.stats = stats
     }
-    def playerStats = stats[(player instanceof String)?player:player.name]
+    playerStats = stats[(player instanceof String)?player:player.name]
     if (!playerStats) {
         playerStats = newPlayerStats()
         stats[player.name] = playerStats
@@ -19,6 +20,17 @@ def getPlayerStats(player) {
     playerStats
 }
 
+
+def findPlayerStats(player) {
+    def playerStats = null
+    if (player) {
+        def stats = global.stats
+        if (stats) {
+            playerStats = stats[(player instanceof String) ? player : player.name]
+        }
+    }
+    playerStats
+}
 
 def newPlayerStats() {
     def now = new Date()
@@ -36,24 +48,32 @@ def newPlayerStats() {
         lastChat: null,
         lastChatMessage: null,
         kickCount: 0,
-        lastKick: null
+        lastKick: null,
+        rank: 0
     ]
 }
 
 
 command 'stats', { runner, args ->
     def player = runner.player
-    def stats = getPlayerStats(args?args[0]:player.name)
-    player.sendMessage "First login: $stats.firstLogin"
-    player.sendMessage "Last login: $stats.lastLogin"
-    player.sendMessage "Last online time: ${stats.lastOnlineTime / 60000} m, total: ${stats.totalOnlineTime / 60000} m"
-    player.sendMessage "$stats.loginCount logins, $stats.kickCount kicks, $stats.respawnCount respawns, $stats.chatCount chats"
+    def name = args ? args[0] : player.name
+    def stats = findPlayerStats(name)
+    if (!stats && name) { stats = findPlayerStats(p(name)) }  // try online partial name matching
+    if (stats) {
+        player.sendMessage "First login: $stats.firstLogin"
+        player.sendMessage "Last login: $stats.lastLogin"
+        player.sendMessage "Last online time: ${stats.lastOnlineTime / 60000} m, total: ${stats.totalOnlineTime / 60000} m"
+        player.sendMessage "$stats.loginCount logins, $stats.kickCount kicks, $stats.respawnCount respawns, $stats.chatCount chats"
+        "$name ${p(name)?.online ? 'has been online for '+((System.currentTimeMillis() - stats.lastLogin.time) / 60000)+' minutes' : 'has been offline since '+stats.lastQuit}"
+    }
+    else "Unable to find player $name"
 }
 
 
 [
     (Event.Type.PLAYER_LOGIN): { PlayerLoginEvent e ->
         getPlayerStats(e.player).with {
+            if (!rank) rank = 0
             loginCount++
             lastLogin = new Date()
         }
@@ -61,7 +81,7 @@ command 'stats', { runner, args ->
 
     (Event.Type.PLAYER_JOIN): { PlayerJoinEvent e ->
         getPlayerStats(e.player).with {
-            e.player.sendMessage "$loginCount logins, ${Math.round(totalOnlineTime / 60000)} minutes online, $respawnCount respawns"
+            e.player.sendMessage "$loginCount logins, ${Math.round(totalOnlineTime / 60000)} minutes, $kickCount kicks, $respawnCount respawns, see '/stats'"
         }
     },
 
