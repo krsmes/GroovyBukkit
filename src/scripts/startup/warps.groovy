@@ -2,13 +2,43 @@ import org.bukkit.Material
 import org.bukkit.event.Event
 import org.bukkit.event.player.PlayerInteractEvent
 
+/*
+Command: warp-help
+    Send player help message about various warp commands
+
+Command: warp
+    Send player a list of available warps
+Arguments: WarpName
+    Teleport player to named warp (looking first in private warps, then in public warps, then in plot names)
+
+Command: warp-back
+    Teleport player to where they were prior to the last /warp command
+
+Command: warp-create
+Arguments: WarpName
+    Create a private warp using the given name set to the player's current location
+
+Command: warp-delete
+Arguments: WarpName
+    Delete a private warp of the given name
+
+Command: warp-public
+Arguments: WarpName
+    If WarpName is a private warp, convert it to a public warp
+    If WarpName doesn't exist, create a new public warp of the given name to the current location
+
+Command: warp-public-delete
+Arguments: WarpName
+    Delete a public warp of the given name
+
+ */
 
 command 'warp-help', { runner, args ->
 	def player = runner.player
 	player.sendMessage "/warp : list available warps"
 	player.sendMessage "/warp NAME : jump to warp"
-	player.sendMessage "/warp-create NAME : create private warp"
-	player.sendMessage "/warp-back : jump to where you were"
+    player.sendMessage "/warp-back : jump to where you were"
+    player.sendMessage "/warp-create NAME : create private warp"
 	player.sendMessage "/warp-delete NAME : delete warp"
 }
 

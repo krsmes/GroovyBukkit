@@ -4,6 +4,54 @@ import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.block.Action
 
+/*
+Commands:
+    plot                     show plot information about your current location
+    plot ON|OFF              turn on or off the messaging of changing plots as you move or teleport
+    plot-list                show a list of all plots
+
+    plot-claim               standing in an unclaimed plot, assign yourself as the new owner
+    plot-release             standing in a plot owned by you, release ownership so it becomes an unclaimed plot
+    plot-invite PLAYER       standing in an owned plot, invite PLAYER as a visitor allowed to work in this plot
+
+    plot-home                standing in an owned plot, set this plot's home location (for /warp PLOTNAME commands)
+    plot-open                standing in an owned plot, set this plot as open to the public
+    plot-close               standing in an owned plot, set this plot as closed to the public
+
+    plot-protection ON|OFF   turn plot protection system on or off
+    plot-create NAME         using the area defined by the last two Stick-RightClicks (from powertools), create a named plot
+    plot-delete NAME         delete the named plot
+    plot-assign PLAYER       standing in a plot, assign PLAYER as the owner (note: ignores max-owned)
+    plot-add NAME            add the area defined by the last two Stick-RightClicks (from powertools) to the named plot
+
+    plot-max #               set server default maximum plots a player can own
+    plot-max PLAYER #        override server default maximum plots for this user (can be lower or higher)
+
+Event Listeners:
+    PLAYER_JOIN              tells user if plot protection is on, sets new users to default '/plot on'
+    BLOCK_DAMAGE             prevent block damage if player is not allowed to work at the block's location
+    PLAYER_INTERACT          prevent building if player is not allowed to work at the location
+
+Plugin 'global' variables in use:
+    plotProtection : boolean           true if the plot system is turned on
+    plotData : Map<String,Plot>        all system plot data
+    plotPublic : Plot                  plot data about public (non-plotted) area
+    plotMaxOwned : int                 default maximum number of plots a player can own (defaults to 1)
+
+Player 'data' variables:
+    plotMaxOwned : int                 maximum number of plots this player can own
+    plot : Plot                        plot the user is currently in (only available with '/plot on')
+
+Notes:
+    All area default to a 'PUBLIC' plot that cannot be owned by anyone.
+    Ops can plot-invite, plot-open, or plot-close the PUBLIC plot
+    Plots can have multiple disjointed areas by using /plot-add
+    The default starting depth of a plot is 32 (everything below that depth is open to the public)
+    The PUBLIC plot has a starting depth of 48
+
+ */
+
+
 def playerPlot(player, Closure c) {
     def plot = findPlot(player)
     (plot && ((plot.public && player.op) || (!plot.public && (plot.owner == player.name)))) ? c(plot) : "Plot '${plot?.name}' not owned by $player.name"
@@ -13,8 +61,8 @@ def playerPlot(player, Closure c) {
 command 'plot-help', { runner, args ->
     [
         "/plot  : show info about current plot",
-        "/plot list  : list all plots",
         "/plot on|off  : show|hide entering/leaving plots",
+        "/plot-list  : list all plots",
         "/plot-claim  : claim the current plot",
         "/plot-release  : release claim on current plot",
         "/plot-invite USER  : invite users to work on the plot",
@@ -31,17 +79,14 @@ command 'plot', { runner, args ->
             runner.data.plotShow = args[0] == 'on'
             return "Show plot while moving is ${runner.data.plotShow?'on':'off'}"
         }
-        else if (args[0] == 'list') {
-            return runner.global?.plots?.data?.keySet()?.toString()
-        }
         return "Unknown plot command: ${args[0]}"
     }
     def plot = findPlot(runner.player)
     if (plot) {
         [
             "Plot: $plot.name (${plot.open?'open':'closed'} land)",
-            "Size: $plot.size",
-            "Owner: ${plot.owner ?: 'no one'}",
+            "Size: $plot.size (${plot.areas?.size()?:0} area(s))",
+            "Owner: ${plot.owner ?: 'unclaimed'} ${p(plot.owner)?.online?'(online)':'(offline)'}",
             "Visitor: $plot.visitors"
         ].each { runner.player.sendMessage it }
         "You are ${plot.allowed(runner.player) ? '' : 'not '}allowed to work here"
@@ -50,12 +95,16 @@ command 'plot', { runner, args ->
         "You are not in a plotted area"
 }
 
+command 'plot-list', { runner, args ->
+    runner.global?.plots?.data?.values()?.name?.toString()
+}
+
 command 'plot-claim', { runner, args ->
     def plot = findPlot(runner.player)
     if (plot && !plot.public)
         if (!plot.owner) {
             def ownedPlots = findOwnedPlots(runner.player)
-            def allowed = runner.data.plotsAllowed?.toInteger() ?: 1
+            def allowed = runner.data.plotMaxOwned ?: global.plotMaxOwned ?: 1
             def owned = ownedPlots?.size() ?: 0
             if (owned >= allowed) {
                 "You are not allowed to own additional plots ($owned>=$allowed)"
@@ -198,6 +247,24 @@ command 'plot-delete', { runner, args ->
 }
 
 
+command 'plot-max', { runner, args ->
+    if (args) {
+        if (args.size()==2) {
+            def name = args[0]
+            def qty = args[1].toInteger()
+            def player = p(name)
+            if (player) { player.data.plotMaxOwned = qty; "$player.name can own $qty plots" } else { "$name not found/online" }
+        }
+        else {
+            def qty = args[1].toInteger()
+            global.plotMaxOwned = qty
+            "Default maximum owned plots is now $global.plotMaxOwned"
+        }
+    }
+    else "Maximum owned plots is $global.plotMaxOwned"
+}
+
+
 
 def breakableTypeIds = [17, 18, 37, 38, 39, 40, 59, 81, 83, 86]
 def placeableTypeIds = [6, 18, 37, 38, 39, 40, 59, 81, 83, 86, 295, 338, 354]
@@ -208,14 +275,16 @@ def interactableTypeIds = [26, 54, 58, 61, 64, 69, 71, 77, 93, 94, 95]
     (Event.Type.PLAYER_JOIN): { runner, PlayerJoinEvent e ->
         if (!runner.data.containsKey('plotShow')) {
             runner.data.plotShow = true
+        }
+        if (global.plotProtection) {
             runner.player.sendMessage "This server has plot protection, see /plot-help"
         }
     },
 
-    (Event.Type.BLOCK_DAMAGE): { BlockDamageEvent e ->
+    (Event.Type.BLOCK_DAMAGE): { runner, BlockDamageEvent e ->
         if (global.plotProtection) {
             def block = e.block
-            def plot = findPlot(block)
+            def plot = findPlot(runner.data.plot, block.x, block.z)
             if (plot?.public) {
                 if (!(block.typeId in breakableTypeIds)) plot.processEvent(e)
             }
@@ -223,17 +292,19 @@ def interactableTypeIds = [26, 54, 58, 61, 64, 69, 71, 77, 93, 94, 95]
         }
     },
 
-    (Event.Type.PLAYER_INTERACT): { PlayerInteractEvent e ->
+    (Event.Type.PLAYER_INTERACT): { runner, PlayerInteractEvent e ->
         if (global.plotProtection) {
             def block = e.clickedBlock
-            def plot = findPlot(block)
-            if (plot?.public) {
-                if (e.action == Action.RIGHT_CLICK_BLOCK &&
-                    ((e.item?.typeId in placeableTypeIds) ||
-                     (block.typeId in interactableTypeIds))) {}
+            def plot = findPlot(runner.data.plot, block.x, block.z)
+            if (plot) {
+                if (plot.public) {
+                    if (e.action == Action.RIGHT_CLICK_BLOCK &&
+                        ((e.item?.typeId in placeableTypeIds) ||
+                         (block.typeId in interactableTypeIds))) {}
+                    else plot.processEvent(e)
+                }
                 else plot.processEvent(e)
             }
-            else plot?.processEvent(e)
         }
     }
 

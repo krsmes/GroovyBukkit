@@ -1,7 +1,7 @@
 /*
 Command: permit
 
-Arguments: _PlayerName command
+Arguments: PlayerName command
 
 Examples:
 
@@ -27,6 +27,7 @@ Examples:
         remove 'whitelist' command from all users
 
  */
+
 command 'permit', { runner, args ->
     def permissions = runner.global.permissions ?: [:]
     def playerName = null

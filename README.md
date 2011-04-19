@@ -17,14 +17,19 @@ Maven to handle dependencies.
 
 	mvn clean package
 
-Note: this plugin no longer requires a fork build of CraftBukkit
+(Note: this plugin no longer requires a forked build of CraftBukkit)
 
 
 Installation
 ------------
 * Copy the .jar file from target/ to your craftserver folder's plugins/ directory
-* Create a scripts/ directory peer to the plugins/ directory (optional)
+* Create a scripts/ directory peer to the plugins/ directory
 * Download a copy of Groovy and copy embedded/groovy-all-1.x.jar to your craftserver folder
+
+Additionally, to see what is possible, it is recommended you copy all the scripts from src/scripts to your
+scripts/ directory, including those under scripts/startup to scripts/startup under your bukkit server.
+
+Scripts in scripts/startup/ run automatically at server startup (and reload).
 
 
 Running
@@ -37,7 +42,7 @@ Groovy will have to be added to the classpath for running craftbukkit/mineserver
     Windows:
 	java -Xmx1g -cp groovy-all-1.7.8.jar;craftbukkit.jar org.bukkit.craftbukkit.Main nogui
 
-(Creating a start.sh script is recommended)
+(Creating a start.sh/start.bat script is recommended)
 
 At start up an info message should be displayed:
 
@@ -66,7 +71,7 @@ to the script are available in the variable 'args'
 scripts/morning.groovy:
 	// very simple example, resets time to morning
 	def day = ((int) s.time / 24000) + (args ? args [0].toInteger (): 0)
-	s.time = day * 24000
+	w.fullTime = day * 24000
 	"Morning of day $day"
 
 The value of the last statement executed (the result) is send to the player as a chat message.

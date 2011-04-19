@@ -6,6 +6,7 @@ import org.bukkit.event.Listener
 import org.bukkit.plugin.EventExecutor
 import org.yaml.snakeyaml.Yaml
 import org.bukkit.entity.Player
+import org.bukkit.block.Block
 
 
 class GroovyRunner extends GroovyAPI implements EventExecutor, Listener {
@@ -185,6 +186,13 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
     List<Plot> findOwnedPlots(player) {
         Plots.instance.findOwnedPlots(player.name)
+    }
+
+    Plot findPlot(Plot checkFirst, int x, int z) {
+        if (checkFirst?.contains(x, z))
+            checkFirst
+        else
+            Plots.instance.findPlot(x, z)
     }
 
     Plot findPlot(int x, int z) {

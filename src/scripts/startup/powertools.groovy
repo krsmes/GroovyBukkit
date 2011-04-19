@@ -60,8 +60,11 @@ command 'ptools', { runner, args ->
         }
         else {
             runner.data.powertools = (args[0] == 'on')
-            "PowerTools ${runner.data.powertools?'ON':'OFF'}"
+            "PowerTools set to ${runner.data.powertools?'on':'off'}"
         }
+    }
+    else {
+        "PowerTools are ${runner.data.powertools ? 'on' : 'off'}"
     }
 }
 
