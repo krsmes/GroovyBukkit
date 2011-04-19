@@ -2,7 +2,6 @@ import org.bukkit.event.Event
 import org.bukkit.event.block.BlockDamageEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerJoinEvent
-import org.bukkit.event.block.Action
 
 /*
 Commands:
@@ -53,10 +52,11 @@ Notes:
 
 
 def playerPlot(player, Closure c) {
-    def plot = findPlot(player)
+    def plot = plots().findPlot(player)
     (plot && ((plot.public && player.op) || (!plot.public && (plot.owner == player.name)))) ? c(plot) : "Plot '${plot?.name}' not owned by $player.name"
 }
 
+def defaultMaxOwned = 1
 
 command 'plot-help', { runner, args ->
     [
@@ -77,11 +77,12 @@ command 'plot', { runner, args ->
     if (args) {
         if (args[0] in ['on','off']) {
             runner.data.plotShow = args[0] == 'on'
+            if (!runner.data.plotShow) runner.data.plot = null
             return "Show plot while moving is ${runner.data.plotShow?'on':'off'}"
         }
         return "Unknown plot command: ${args[0]}"
     }
-    def plot = findPlot(runner.player)
+    def plot = plots().findPlot(runner.player)
     if (plot) {
         [
             "Plot: $plot.name (${plot.open?'open':'closed'} land)",
@@ -100,11 +101,11 @@ command 'plot-list', { runner, args ->
 }
 
 command 'plot-claim', { runner, args ->
-    def plot = findPlot(runner.player)
+    def plot = plots().findPlot(runner.player)
     if (plot && !plot.public)
         if (!plot.owner) {
-            def ownedPlots = findOwnedPlots(runner.player)
-            def allowed = runner.data.plotMaxOwned ?: global.plotMaxOwned ?: 1
+            def ownedPlots = plots().findOwnedPlots(runner.player.name)
+            def allowed = runner.data.plotMaxOwned ?: global.plotMaxOwned ?: defaultMaxOwned
             def owned = ownedPlots?.size() ?: 0
             if (owned >= allowed) {
                 "You are not allowed to own additional plots ($owned>=$allowed)"
@@ -183,11 +184,11 @@ command 'plot-create', { runner, args ->
         if (plot_name.equalsIgnoreCase('public'))
             "You cannot create plot named 'public"
         else {
-            if (!findPlots(plot_name)) {
+            if (!plots().findPlot(plot_name)) {
                 def plot_loc1 = runner.data.stickClicks[0]
                 def plot_loc2 = runner.data.stickClicks[1]
                 def a = area(plot_loc1, plot_loc2)
-                if (plot(plot_name, a))
+                if (plots().createPlot(plot_name, a, runner.world))
                     "Plot '$plot_name' created with area $a"
                 else
                     "Unable to create plot '$plot_name'"
@@ -203,7 +204,7 @@ command 'plot-add', { runner, args ->
         def plot_name = runner.data.plot?.name
         if (args?.size() > 0) plot_name = args.join(' ')
         if (plot_name) {
-            def plot = findPlot(plot_name)
+            def plot = plots().findPlot(plot_name)
             if (plot) {
                 def plot_loc1 = runner.data.stickClicks[0]
                 def plot_loc2 = runner.data.stickClicks[1]
@@ -221,8 +222,8 @@ command 'plot-add', { runner, args ->
 
 command 'plot-assign', { runner, args ->
     if (args) {
-        def plot = findPlot(runner.player)
-        if (plot && !plot.public) {
+        def plot = plots().findPlot(runner.player)
+        if (!plot.public) {
             plot.owner = args[0]
             "Plot '$plot.name' is now owned by $plot.owner"
         }
@@ -236,9 +237,9 @@ command 'plot-delete', { runner, args ->
     def plot_name = runner.data.plot?.name
     if (args?.size() > 0) plot_name = args.join(' ')
     if (plot_name) {
-        def plot = findPlot(plot_name)
+        def plot = plots().findPlot(plot_name)
         if (plot) {
-            removePlot(plot_name)
+            plots().removePlot(plot_name)
             "Plot '$plot_name' has been deleted"
         }
         else "Plot '$plot_name' not found"
@@ -261,14 +262,9 @@ command 'plot-max', { runner, args ->
             "Default maximum owned plots is now $global.plotMaxOwned"
         }
     }
-    else "Maximum owned plots is $global.plotMaxOwned"
+    else "Maximum owned plots is ${global.plotMaxOwned?: defaultMaxOwned}"
 }
 
-
-
-def breakableTypeIds = [17, 18, 37, 38, 39, 40, 59, 81, 83, 86]
-def placeableTypeIds = [6, 18, 37, 38, 39, 40, 59, 81, 83, 86, 295, 338, 354]
-def interactableTypeIds = [26, 54, 58, 61, 64, 69, 71, 77, 93, 94, 95]
 
 [
 
@@ -283,28 +279,13 @@ def interactableTypeIds = [26, 54, 58, 61, 64, 69, 71, 77, 93, 94, 95]
 
     (Event.Type.BLOCK_DAMAGE): { runner, BlockDamageEvent e ->
         if (global.plotProtection) {
-            def block = e.block
-            def plot = findPlot(runner.data.plot, block.x, block.z)
-            if (plot?.public) {
-                if (!(block.typeId in breakableTypeIds)) plot.processEvent(e)
-            }
-            else plot?.processEvent(e)
+            plots().processEvent(runner.data.plot, e)
         }
     },
 
     (Event.Type.PLAYER_INTERACT): { runner, PlayerInteractEvent e ->
         if (global.plotProtection) {
-            def block = e.clickedBlock
-            def plot = findPlot(runner.data.plot, block.x, block.z)
-            if (plot) {
-                if (plot.public) {
-                    if (e.action == Action.RIGHT_CLICK_BLOCK &&
-                        ((e.item?.typeId in placeableTypeIds) ||
-                         (block.typeId in interactableTypeIds))) {}
-                    else plot.processEvent(e)
-                }
-                else plot.processEvent(e)
-            }
+            plots().processEvent(runner.data.plot, e)
         }
     }
 

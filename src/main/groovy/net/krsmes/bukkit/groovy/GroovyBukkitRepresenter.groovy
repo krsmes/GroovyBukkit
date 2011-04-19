@@ -50,6 +50,7 @@ class GroovyBukkitRepresenter extends Representer
 		representers[CraftPlayer.class] = rep
 		representers[Area.class] = rep
 		representers[Plot.class] = rep
+		representers[PublicPlot.class] = rep
 	}
 
     static gLocation(data) { "l($data.x, $data.y, $data.z, $data.yaw, $data.pitch)" }

@@ -244,8 +244,13 @@ class GroovyAPI {
     }
 
     static Plot plot(Map attrs) {
-        new Plot(attrs)
+        (attrs.name == PublicPlot.PUBLIC_PLOT_NAME) ? new PublicPlot(attrs) : new Plot(attrs)
     }
+
+    static Plots plots() {
+        Plots.instance
+    }
+
 
 //
 // helper methods

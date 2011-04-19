@@ -1,24 +1,29 @@
 package net.krsmes.bukkit.groovy;
 
 import org.bukkit.Location;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
 
 import java.io.Serializable;
 import java.util.*;
 
 
 public class Plot implements Serializable {
-    static String PUBLIC_PLOT_NAME = "PUBLIC";
+    private static final long serialVersionUID = 1L;
+
+    public static int PLOT_START_DEPTH = 32;
 
     String name;
     String owner;
     Location home;
     List<Area> areas = new ArrayList<Area>();
     List<String> visitors = new ArrayList<String>();
-    int startDepth = 32;
+    int startDepth = PLOT_START_DEPTH;
     boolean open;
 
     public Plot() {}
@@ -29,7 +34,7 @@ public class Plot implements Serializable {
 
     public Plot(String name, Area area) {
         this(name);
-        areas.add(area);
+        if (area != null) { areas.add(area); }
     }
 
     @Override
@@ -67,6 +72,14 @@ public class Plot implements Serializable {
         setOwner(owner.getName());
     }
 
+    public Location getHome() {
+        return home;
+    }
+
+    public void setHome(Location home) {
+        this.home = home;
+    }
+
     public List<Area> getAreas() {
         return areas;
     }
@@ -100,7 +113,7 @@ public class Plot implements Serializable {
     }
 
     public boolean isPublic() {
-        return this.name.equals(PUBLIC_PLOT_NAME);
+        return false;
     }
 
     public int getSize() {
@@ -146,21 +159,25 @@ public class Plot implements Serializable {
         return false;
     }
 
+    public boolean allowDamage(Player player, Block block) {
+        // assumes plot contains block.x and block.z
+        return (block.getY() < startDepth || allowed(player));
+    }
+
+    public boolean allowInteract(Player player, Block block, ItemStack item) {
+        // assumes plot contains block.x and block.z
+        return (block == null || block.getY() < startDepth || allowed(player));
+    }
+
     public void processEvent(PlayerInteractEvent e) {
-        if (!allowed(e.getPlayer())) {
-            if (e.hasBlock()) {
-                if (e.getClickedBlock().getY() >= startDepth) {
-                    e.setUseInteractedBlock(Event.Result.DENY);
-                }
-            }
+        if ((e.getAction() != Action.RIGHT_CLICK_BLOCK || !allowInteract(e.getPlayer(), e.getClickedBlock(), e.getItem())) && !allowed(e.getPlayer())) {
+            e.setUseInteractedBlock(Event.Result.DENY);
         }
     }
 
     public void processEvent(BlockDamageEvent e) {
-        if (!allowed(e.getPlayer())) {
-            if (e.getBlock().getY() >= startDepth) {
-                e.setCancelled(true);
-            }
+        if (!allowDamage(e.getPlayer(), e.getBlock())) {
+            e.setCancelled(true);
         }
     }
 

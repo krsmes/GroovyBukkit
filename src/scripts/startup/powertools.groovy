@@ -6,6 +6,7 @@ import org.bukkit.block.Block
 import org.bukkit.entity.Player
 import org.bukkit.util.BlockIterator
 import org.bukkit.block.BlockFace
+import org.bukkit.event.Event.Result
 /*
 Command: ptools
 
@@ -60,12 +61,9 @@ command 'ptools', { runner, args ->
         }
         else {
             runner.data.powertools = (args[0] == 'on')
-            "PowerTools set to ${runner.data.powertools?'on':'off'}"
         }
     }
-    else {
-        "PowerTools are ${runner.data.powertools ? 'on' : 'off'}"
-    }
+    "PowerTools are ${runner.data.powertools ? 'on' : 'off'} ('/ptools help' for info)"
 }
 
 
@@ -138,26 +136,38 @@ def addStickClick(runner, Block block) {
 [
 
     (Event.Type.PLAYER_INTERACT): { runner, PlayerInteractEvent e ->
-        debug "powertools(${runner.data.powertools ? 'ON' : 'OFF'}): $e.eventName ($e.player.name): item=$e.item, action=$e.action, clickedBlock=$e.clickedBlock, blockFace=$e.blockFace"
+//        debug "powertools(${runner.data.powertools ? 'ON' : 'OFF'}): $e.eventName ($e.player.name): item=$e.item, action=$e.action, clickedBlock=$e.clickedBlock, blockFace=$e.blockFace, useBlock=${e.useInteractedBlock()}"
 
-        if (!runner.data.powertools || e.clickedBlock?.type in [Material.WOODEN_DOOR, Material.CHEST, Material.WORKBENCH]) return
+        if (!runner.data.powertools ||
+                (e.clickedBlock &&
+                        e.clickedBlock.type in [Material.WOODEN_DOOR, Material.CHEST, Material.WORKBENCH]
+                )
+            ) {
+            return
+        }
+        else if (e.useInteractedBlock() != Result.DENY) {
 
-        else if (e.item == null) {
-            if (e.action == Action.LEFT_CLICK_BLOCK && e.player.sneaking) future { killBlock(e.clickedBlock) }
-            else if (e.action == Action.RIGHT_CLICK_BLOCK) future { pickupBlock(e.player, e.clickedBlock) }
+            if (e.item == null) {
+                if (e.action == Action.LEFT_CLICK_BLOCK && e.player.sneaking) future { killBlock(e.clickedBlock) }
+                else if (e.action == Action.RIGHT_CLICK_BLOCK) future { pickupBlock(e.player, e.clickedBlock) }
+            }
+            else if (e.item.type.isBlock() && e.useInteractedBlock() != Result.DENY) {
+                if (e.action == Action.LEFT_CLICK_BLOCK) future { changeClickedBlockToItem(e.clickedBlock, e.item) }
+                else if (e.action == Action.RIGHT_CLICK_BLOCK && e.player.sneaking) e.player.itemInHand.amount += 1
+            }
+            else if (e.item.type == Material.STICK) {
+                if (e.action == Action.LEFT_CLICK_BLOCK && !e.player.sneaking) future { incrementData(e.clickedBlock) }
+                else if (e.action == Action.LEFT_CLICK_BLOCK) future { duplicateBlock(e.clickedBlock, e.blockFace) }
+            }
+
         }
 
-        else if (e.item.type == Material.STICK) {
+        if (e.item?.type == Material.STICK) {
+            // these are allowed even if useBlock=DENY
             if (e.action == Action.RIGHT_CLICK_AIR) future { jumpToTarget(e.player) }
             else if (e.action == Action.RIGHT_CLICK_BLOCK) future { stickClick(e.player, runner, e.clickedBlock) }
-            else if (e.action == Action.LEFT_CLICK_BLOCK && !e.player.sneaking) future { incrementData(e.clickedBlock) }
-            else if (e.action == Action.LEFT_CLICK_BLOCK) future { duplicateBlock(e.clickedBlock, e.blockFace) }
         }
 
-        else if (e.item.type.isBlock()) {
-            if (e.action == Action.LEFT_CLICK_BLOCK) future { changeClickedBlockToItem(e.clickedBlock, e.item) }
-            else if (e.action == Action.RIGHT_CLICK_BLOCK && e.player.sneaking) e.player.itemInHand.amount += 1
-        }
     }
 
 ]
