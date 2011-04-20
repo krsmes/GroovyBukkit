@@ -8,6 +8,8 @@ import org.bukkit.util.BlockIterator
 import org.bukkit.block.BlockFace
 import org.bukkit.event.Event.Result
 import org.bukkit.event.player.PlayerJoinEvent
+import org.bukkit.inventory.ItemStack
+import org.bukkit.event.block.BlockDamageEvent
 /*
 Command: ptools
 
@@ -98,14 +100,72 @@ def jumpToTarget(player) {
 
 
 def incrementData(Block block) {
-    block.data += 1
-    if (block.data > 15) block.data = 0
+    if (!global.temp.blockIncrementType) {
+        global.temp.blockIncrementType = [
+                (Material.GRASS): Material.SOIL,
+                (Material.SOIL): Material.DIRT,
+                (Material.DIRT): Material.GRASS,
+
+                (Material.STONE): Material.COBBLESTONE,
+                (Material.COBBLESTONE): Material.MOSSY_COBBLESTONE,
+                (Material.MOSSY_COBBLESTONE): Material.BRICK,
+                (Material.BRICK): Material.CLAY,
+                (Material.CLAY): Material.STONE,
+
+                (Material.SAND): Material.SANDSTONE,
+                (Material.SANDSTONE): Material.SOUL_SAND,
+                (Material.SOUL_SAND): Material.SAND,
+
+                (Material.ICE): Material.SNOW,
+                (Material.SNOW): Material.ICE,
+
+                (Material.WOOD): Material.GLASS,
+                (Material.GLASS): Material.WOOD,
+
+                (Material.GOLD_BLOCK): Material.IRON_BLOCK,
+                (Material.IRON_BLOCK): Material.GOLD_BLOCK,
+
+                (Material.LAPIS_BLOCK): Material.DIAMOND_BLOCK,
+                (Material.DIAMOND_BLOCK): Material.LAPIS_BLOCK,
+
+                (Material.YELLOW_FLOWER): Material.RED_ROSE,
+                (Material.RED_ROSE): Material.RED_MUSHROOM,
+                (Material.RED_MUSHROOM): Material.BROWN_MUSHROOM,
+                (Material.BROWN_MUSHROOM): Material.YELLOW_FLOWER,
+
+                (Material.GLOWSTONE): Material.NETHERRACK,
+                (Material.NETHERRACK): Material.SPONGE,
+                (Material.SPONGE): Material.NETHERRACK
+        ]
+
+        global.temp.blockDataMax = [
+                (Material.COBBLESTONE_STAIRS): 3,
+                (Material.WOOD_STAIRS): 3,
+                (Material.LOG): 2,
+                (Material.LEAVES): 2
+        ]
+
+    }
+    def blockIncrementType = global.temp.blockIncrementType
+    if (blockIncrementType.containsKey(block.type)) {
+        block.type = blockIncrementType[block.type]
+    }
+    else {
+        def blockDataMax = global.temp.blockDataMax
+        block.data += 1
+        if (block.data > 15 || (blockDataMax.containsKey(block.type) && block.data > blockDataMax[block.type])) block.data = 0
+    }
 }
 
 
-def changeClickedBlockToItem(block, item) {
-    block.type = item.type
-    block.data = item.data.data
+def changeClickedBlockToItem(Block block, ItemStack item) {
+    if ((item.type == Material.SNOW_BLOCK || item.type == Material.SNOW_BALL) && (block + 1).typeId == 0) {
+        (block + 1).type = Material.SNOW;
+    }
+    else {
+        block.type = item.type
+        block.data = item.durability // ???
+    }
 }
 
 
@@ -141,8 +201,14 @@ def addStickClick(runner, Block block) {
         }
     },
 
+    (Event.Type.BLOCK_DAMAGE): { runner, BlockDamageEvent e ->
+        if (!runner.data.powertools || e.cancelled) return
+
+        if (runner.player.itemInHand.type == Material.STICK) e.cancelled = true
+    },
+
     (Event.Type.PLAYER_INTERACT): { runner, PlayerInteractEvent e ->
-//        debug "powertools(${runner.data.powertools ? 'ON' : 'OFF'}): $e.eventName ($e.player.name): item=$e.item, action=$e.action, clickedBlock=$e.clickedBlock, blockFace=$e.blockFace, useBlock=${e.useInteractedBlock()}"
+//        println "powertools(${runner.data.powertools ? 'ON' : 'OFF'}): $e.eventName ($e.player.name): item=$e.item, action=$e.action, clickedBlock=$e.clickedBlock, blockFace=$e.blockFace, useBlock=${e.useInteractedBlock()}"
 
         if (!runner.data.powertools ||
                 (e.clickedBlock &&
@@ -152,7 +218,6 @@ def addStickClick(runner, Block block) {
             return
         }
         else if (e.useInteractedBlock() != Result.DENY) {
-
             if (e.item == null) {
                 if (e.action == Action.LEFT_CLICK_BLOCK && e.player.sneaking) future { killBlock(e.clickedBlock) }
                 else if (e.action == Action.RIGHT_CLICK_BLOCK) future { pickupBlock(e.player, e.clickedBlock) }
@@ -162,8 +227,9 @@ def addStickClick(runner, Block block) {
                 else if (e.action == Action.RIGHT_CLICK_BLOCK && e.player.sneaking) e.player.itemInHand.amount += 1
             }
             else if (e.item.type == Material.STICK) {
-                if (e.action == Action.LEFT_CLICK_BLOCK && !e.player.sneaking) future { incrementData(e.clickedBlock) }
-                else if (e.action == Action.LEFT_CLICK_BLOCK) future { duplicateBlock(e.clickedBlock, e.blockFace) }
+                if (e.action == Action.LEFT_CLICK_BLOCK)
+                    if (e.player.sneaking) future { duplicateBlock(e.clickedBlock, e.blockFace) }
+                    else future { incrementData(e.clickedBlock) }
             }
 
         }

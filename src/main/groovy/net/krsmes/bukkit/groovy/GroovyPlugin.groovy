@@ -40,6 +40,7 @@ class GroovyPlugin extends JavaPlugin
 		enabled = true
 		GroovyBukkitMetaClasses.enable()
 		runner = new GroovyRunner(this, [:])._init()
+        runner.data.temp = [:]
         runner.data.plots = Plots.create(this, runner.data)
 
 		registerEventHandlers()

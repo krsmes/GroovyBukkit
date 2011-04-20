@@ -69,7 +69,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
         log "Storing $datafile"
         try {
             def savableData = [:]
-            data.each{ k, v -> if (k!='last' && k!='temp' && v instanceof Serializable) savableData.put(k,v) }
+            data.each{ k, v -> if (k!='last' && k!='temp' && k!='plot' && v instanceof Serializable) savableData.put(k,v) }
             datafile.text = dumpyaml(savableData)
         }
         catch (e) {
