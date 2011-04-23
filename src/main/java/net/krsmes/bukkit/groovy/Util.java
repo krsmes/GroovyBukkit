@@ -54,4 +54,17 @@ public class Util {
         return result;
     }
 
+
+    public static String join(String glue, String... s) {
+        StringBuilder out = new StringBuilder();
+        int k = s.length;
+        if (k > 0) {
+            out.append(s[0]);
+            for (int x = 1; x < k; ++x) {
+                out.append(glue).append(s[x]);
+            }
+        }
+        return out.toString();
+    }
+
 }

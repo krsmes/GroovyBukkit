@@ -8,36 +8,41 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.EventExecutor;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginManager;
 
-import javax.imageio.metadata.IIOInvalidTreeException;
 import java.util.*;
 import java.util.logging.Logger;
 
+/**
+ * Singleton class for Plots suppport
+ */
 public class Plots implements EventExecutor, Listener {
     static Logger log = Logger.getLogger("Minecraft");
 
+    public static String ATTR_PLOTS = "plots";
     public static String ATTR_PLOT = "plot";
     public static String ATTR_PLOT_SHOW = "plotShow";
     public static String ATTR_DATA = "plotsData";
     public static String ATTR_PUBLIC = "plotsPublic";
     public static Plots instance;
 
+    GroovyPlugin plugin;
     Map<String, Plot> data;
     Plot publicPlot;
 
 
-    private Plots() {
+    private Plots(GroovyPlugin plugin) {
         log.info("Plots: creating instance");
+        this.plugin = plugin;
+        register();
     }
 
-    public static Plots create(Plugin plugin, Map<String,Object> global) {
+
+    public static Plots init(GroovyPlugin plugin, Map<String, Object> global) {
         Map<String, Plot> data = (Map) global.get(ATTR_DATA);
         if (data == null) {
             data = new HashMap<String, Plot>();
@@ -48,9 +53,10 @@ public class Plots implements EventExecutor, Listener {
             publicPlot = new PublicPlot();
             global.put(ATTR_PUBLIC, publicPlot);
         }
-        if (instance == null) {
-            instance = new Plots();
-            instance.register(plugin);
+        if (instance == null || instance.plugin != plugin) {
+            instance = new Plots(plugin);
+            instance.register();
+            global.put(ATTR_PLOTS, instance);
         }
         log.info("Plots: setting data: "+ data.size() + " plots");
         instance.data = data;
@@ -58,11 +64,19 @@ public class Plots implements EventExecutor, Listener {
         return instance;
     }
 
-    public void register(Plugin plugin) {
-        log.info("Plots: registering");
-        plugin.getServer().getPluginManager().registerEvent(Event.Type.PLAYER_MOVE, this, this, Event.Priority.High, plugin);
-        plugin.getServer().getPluginManager().registerEvent(Event.Type.PLAYER_TELEPORT, this, this, Event.Priority.High, plugin);
+
+    public static void stop() {
+
     }
+
+
+    public void register() {
+        log.info("Plots: registering");
+        PluginManager mgr = plugin.getServer().getPluginManager();
+        mgr.registerEvent(Event.Type.PLAYER_MOVE, this, this, Event.Priority.High, plugin);
+        mgr.registerEvent(Event.Type.PLAYER_TELEPORT, this, this, Event.Priority.High, plugin);
+    }
+
 
     public void execute(Listener listener, Event event) {
         Player player;
@@ -73,7 +87,7 @@ public class Plots implements EventExecutor, Listener {
             case PLAYER_TELEPORT:
                 PlayerMoveEvent pme = (PlayerMoveEvent) event;
                 player = pme.getPlayer();
-                playerData = GroovyPlugin.getInstance().getData(player);
+                playerData = plugin.getData(player);
                 Object plotShow = playerData.get(ATTR_PLOT_SHOW);
                 if (plotShow instanceof Boolean && (Boolean)plotShow) {
                     Location to = pme.getTo();

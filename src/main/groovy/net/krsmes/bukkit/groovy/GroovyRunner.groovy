@@ -6,8 +6,6 @@ import org.bukkit.event.Listener
 import org.bukkit.plugin.EventExecutor
 import org.yaml.snakeyaml.Yaml
 import org.bukkit.entity.Player
-import org.bukkit.block.Block
-
 
 class GroovyRunner extends GroovyAPI implements EventExecutor, Listener {
 
@@ -15,7 +13,7 @@ class GroovyRunner extends GroovyAPI implements EventExecutor, Listener {
 import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import org.bukkit.inventory.*;import org.bukkit.material.*;import org.bukkit.event.*;import org.bukkit.util.*;
 """
 
-    GroovyPlugin plugin
+    def plugin
     GroovyShell shell
     Map vars
 
@@ -26,7 +24,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
     Player player = null
 
 
-	GroovyRunner(GroovyPlugin plugin, def data) {
+	GroovyRunner(def plugin, def data) {
 		super(plugin.server)
 		this.plugin = plugin
         this.global = plugin.runner?.data ?: data
@@ -83,13 +81,13 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 
-	def runScript = { def script ->
+	def runScript(def script) {
 		run SCRIPT_PREFIX + script, null
 	}
 
 
 	def runFile = { scriptName, args ->
-		def script = load(scriptName + GroovyPlugin.SCRIPT_SUFFIX)
+		def script = load(scriptName + GroovyPluginOriginal.SCRIPT_SUFFIX)
 		if (script) {
 			run script, args
 		}
@@ -259,7 +257,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 			if (glisteners.containsKey(key)) {
                 Closure glistener = glisteners[key]
                 if (e.respondsTo('getPlayer'))
-                    plugin.getRunner(e.player).execute(glistener, e)
+                    plugin.getRunner(e.player)?.execute(glistener, e)
 				else
 				    execute(glistener, e)
 			}
@@ -280,8 +278,16 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 // futures
 //
 
-    void future(Closure c) {
-        plugin.futures.add(0, c)  // pop() comes off the end so always add to the beginnig for fifo
+    def future(int delay = 0, boolean sync=false, Closure c) {
+        sync ?
+            plugin.server.scheduler.scheduleSyncDelayedTask(plugin, c, delay) :
+            plugin.server.scheduler.scheduleAsyncDelayedTask(plugin, c, delay)
+    }
+
+    def repeat(int period, boolean sync=false, Closure c) {
+        sync ?
+            plugin.server.scheduler.scheduleSyncRepeatingTask(plugin, c, 0, period) :
+            plugin.server.scheduler.scheduleAsyncRepeatingTask(plugin, c, 0, period)
     }
 
 

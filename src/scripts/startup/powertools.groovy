@@ -56,7 +56,7 @@ command 'ptools', { runner, args ->
                 "Hand-Sneak-RightClick : pick up block",
                 "Stick-RightClick-Air : teleport to target",
                 "Stick-RightClick : show block info",
-                "Stick-Click : cycle block data",
+                "Stick-Click : cycle block type or data",
                 "Stick-Sneak-Click : duplicate block",
                 "Block-Click : change block to block in hand",
                 "Block-RightClick : infinite place block"
@@ -72,7 +72,11 @@ command 'ptools', { runner, args ->
 
 
 def killBlock(Block block) {
-    if (block.y > 1) block.type = Material.AIR
+    //println "killBlock(): $block"
+    if (block.y > 1) {
+        block.type = Material.AIR
+        block.state.update(true)
+    }
 }
 
 
@@ -88,12 +92,15 @@ def addClickedBlockToInventory(player, block, qty) {
 }
 
 
-def jumpToTarget(player) {
+def jumpToTarget(Player player) {
     def target = player.getTargetBlock(null, 128)
     if (target) {
-        def above = target + 1
-        if (above.typeId == 0) {
-            player.teleport(above.location)
+        def above1 = target + 1
+        def above2 = target + 2
+        if (above1.typeId == 0 && above2.typeId == 0) {
+            def playerLoc = player.location
+            def loc = new Location(playerLoc.world, above1.x, above1.y, above1.z, playerLoc.yaw, playerLoc.pitch)
+            player.teleport(loc)
         }
     }
 }
@@ -107,35 +114,27 @@ def incrementData(Block block) {
                 (Material.DIRT): Material.GRASS,
 
                 (Material.STONE): Material.COBBLESTONE,
-                (Material.COBBLESTONE): Material.MOSSY_COBBLESTONE,
-                (Material.MOSSY_COBBLESTONE): Material.BRICK,
-                (Material.BRICK): Material.CLAY,
+                (Material.COBBLESTONE): Material.CLAY,
                 (Material.CLAY): Material.STONE,
 
                 (Material.SAND): Material.SANDSTONE,
-                (Material.SANDSTONE): Material.SOUL_SAND,
-                (Material.SOUL_SAND): Material.SAND,
+                (Material.SANDSTONE): Material.SAND,
 
-                (Material.ICE): Material.SNOW,
-                (Material.SNOW): Material.ICE,
-
-                (Material.WOOD): Material.GLASS,
-                (Material.GLASS): Material.WOOD,
-
-                (Material.GOLD_BLOCK): Material.IRON_BLOCK,
-                (Material.IRON_BLOCK): Material.GOLD_BLOCK,
-
-                (Material.LAPIS_BLOCK): Material.DIAMOND_BLOCK,
-                (Material.DIAMOND_BLOCK): Material.LAPIS_BLOCK,
+                (Material.ICE): Material.SNOW_BLOCK,
+                (Material.SNOW_BLOCK): Material.ICE,
 
                 (Material.YELLOW_FLOWER): Material.RED_ROSE,
                 (Material.RED_ROSE): Material.RED_MUSHROOM,
                 (Material.RED_MUSHROOM): Material.BROWN_MUSHROOM,
                 (Material.BROWN_MUSHROOM): Material.YELLOW_FLOWER,
 
+                (Material.MOSSY_COBBLESTONE): Material.GLOWSTONE,
                 (Material.GLOWSTONE): Material.NETHERRACK,
                 (Material.NETHERRACK): Material.SPONGE,
-                (Material.SPONGE): Material.NETHERRACK
+                (Material.SPONGE): Material.MOSSY_COBBLESTONE,
+
+                (Material.WEB): Material.SOUL_SAND,
+                (Material.SOUL_SAND): Material.WEB
         ]
 
         global.temp.blockDataMax = [
@@ -149,11 +148,13 @@ def incrementData(Block block) {
     def blockIncrementType = global.temp.blockIncrementType
     if (blockIncrementType.containsKey(block.type)) {
         block.type = blockIncrementType[block.type]
+        block.state.update(true)
     }
     else {
         def blockDataMax = global.temp.blockDataMax
         block.data += 1
         if (block.data > 15 || (blockDataMax.containsKey(block.type) && block.data > blockDataMax[block.type])) block.data = 0
+        block.state.update(true)
     }
 }
 
@@ -165,6 +166,7 @@ def changeClickedBlockToItem(Block block, ItemStack item) {
     else {
         block.type = item.type
         block.data = item.durability // ???
+        block.state.update(true)
     }
 }
 
@@ -173,13 +175,14 @@ def duplicateBlock(Block block, BlockFace face) {
     def dup = block + face
     dup.type = block.type
     dup.data = block.data
+    dub.state.update(true)
 }
 
 
 def stickClick(Player player, runner, Block block) {
     addStickClick(runner, block)
     player.sendMessage("$ChatColor.DARK_PURPLE${f(player)} $block.x,$block.y,$block.z:$block.typeId $block.state.data")
-    def blocks = new BlockIterator(player, 25).toList()
+    def blocks = new BlockIterator(player, 16).toList()
     def msg = blocks[1..-1].collect { it.typeId in [0,1,2,3,4,8,9,12,13,24,60,78,79] ? it.type.toString().toLowerCase() : it.type.toString() }.join(', ')
     player.sendMessage("$ChatColor.GRAY$msg")
 }
@@ -203,12 +206,11 @@ def addStickClick(runner, Block block) {
 
     (Event.Type.BLOCK_DAMAGE): { runner, BlockDamageEvent e ->
         if (!runner.data.powertools || e.cancelled) return
-
         if (runner.player.itemInHand.type == Material.STICK) e.cancelled = true
     },
 
     (Event.Type.PLAYER_INTERACT): { runner, PlayerInteractEvent e ->
-//        println "powertools(${runner.data.powertools ? 'ON' : 'OFF'}): $e.eventName ($e.player.name): item=$e.item, action=$e.action, clickedBlock=$e.clickedBlock, blockFace=$e.blockFace, useBlock=${e.useInteractedBlock()}"
+        //println "powertools(${runner.data.powertools ? 'ON' : 'OFF'}): $e.eventName ($e.player.name): item=$e.item, action=$e.action, clickedBlock=$e.clickedBlock, blockFace=$e.blockFace, useBlock=${e.useInteractedBlock()}"
 
         if (!runner.data.powertools ||
                 (e.clickedBlock &&

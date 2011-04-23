@@ -7,7 +7,7 @@ import org.bukkit.entity.Player
 import org.bukkit.command.Command
 import org.bukkit.command.CommandSender
 import org.bukkit.event.Event
-import org.bukkit.event.player.PlayerEvent
+
 import org.bukkit.event.player.PlayerChatEvent
 import org.bukkit.event.world.WorldEvent
 import org.bukkit.World
@@ -15,10 +15,8 @@ import net.krsmes.bukkit.groovy.events.DayChangeEvent
 import net.krsmes.bukkit.groovy.events.HourChangeEvent
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerQuitEvent
-import org.bukkit.event.player.PlayerLoginEvent
 
-
-class GroovyPlugin extends JavaPlugin
+class GroovyPluginOriginal extends JavaPlugin
 {
 	static Logger log = Logger.getLogger("Minecraft")
 
@@ -26,7 +24,7 @@ class GroovyPlugin extends JavaPlugin
 	static STARTUP_LOC = SCRIPT_LOC + 'startup/'
 	static SCRIPT_SUFFIX = '.groovy'
 
-    static GroovyPlugin instance
+    static GroovyPluginOriginal instance
 	static def enabled
 
 	def commands = [:]
@@ -41,10 +39,10 @@ class GroovyPlugin extends JavaPlugin
 		GroovyBukkitMetaClasses.enable()
 		runner = new GroovyRunner(this, [:])._init()
         runner.data.temp = [:]
-        runner.data.plots = Plots.create(this, runner.data)
+        runner.data.plots = Plots.init(this, runner.data)
 
 		registerEventHandlers()
-        initFutures()
+        initEvents()
 		log.info("${description.name} ${description.version} enabled")
 	}
 
@@ -79,9 +77,9 @@ class GroovyPlugin extends JavaPlugin
             }
 		}
 		catch (e) {
-			//sender.sendMessage e.message
+			sender.sendMessage "ERR: $e.message (${e.stackTrace.find{it.className.startsWith('net.krsmes')}})"
 			log.severe(e.message)
-			e.printStackTrace()
+//			e.printStackTrace()
 		}
 		false
 	}
@@ -164,8 +162,15 @@ class GroovyPlugin extends JavaPlugin
                     def cmds = e.message.split(' ').toList()
                     def cmd = cmds[0].substring(1)
                     if (commands.containsKey(cmd)) {
+                        def player = e.player
                         def args = cmds.size() > 1 ? cmds[1..-1] : []
-                        getRunner(e.player).runCommand(cmd, args)
+                        try {
+                            getRunner(player).runCommand(cmd, args)
+                        }
+                        catch (ex) {
+                            player.sendMessage "ERR: $ex.message (${ex.stackTrace.find {it.className.startsWith('net.krsmes')}})"
+                            log.severe(ex.message)
+                        }
                         e.cancelled = true
                     }
                 }
@@ -200,34 +205,19 @@ class GroovyPlugin extends JavaPlugin
 // futures
 //
 
-    def futures = []
-    Thread futuresThread
+    def lastHours = [:]
 
-
-    synchronized void initFutures() {
-        if (futuresThread && futuresThread.alive) return
-        futuresThread = Thread.start {
-            def lastHours = [:]
-            while (enabled) {
-                server.worlds.each { w ->
-                    def curHour = (int) (w.time / 1000)
-                    if (lastHours[w.name] != curHour) {
-                        hourChange(w, curHour)
-                        lastHours[w.name] = curHour
-                    }
+    synchronized void initEvents() {
+        def timeEvent = {
+            server.worlds.each { w ->
+                def curHour = (int) (w.time / 1000)
+                if (lastHours[w.name] != curHour) {
+                    hourChange(w, curHour)
+                    lastHours[w.name] = curHour
                 }
-                while (futures) {
-                    try {
-                        def result = futures.pop()()
-                        // if the closure returns a closure it is appended to the stack
-                        if (result instanceof Closure) futures << result
-                        sleep 10
-                    }
-                    catch (e) {}
-                }
-                sleep 50
             }
         }
+        server.scheduler.scheduleAsyncRepeatingTask(this, timeEvent, 0, 50);
     }
 
 

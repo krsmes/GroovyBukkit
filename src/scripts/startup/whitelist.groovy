@@ -20,7 +20,7 @@ Examples:
     whitelist -krsmes
         remove player 'krsmes' from the whitelist, this also kicks krsmes if they are currently online
 
- */
+
 
 // command implementation
 command 'whitelist', { runner, args ->
@@ -57,3 +57,5 @@ command 'whitelist', { runner, args ->
 			e.disallow(PlayerLoginEvent.Result.KICK_OTHER, msg)
 	}
 ]
+
+*/

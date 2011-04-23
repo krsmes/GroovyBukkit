@@ -171,6 +171,7 @@ public class Plot implements Serializable {
 
     public void processEvent(PlayerInteractEvent e) {
         if ((e.getAction() != Action.RIGHT_CLICK_BLOCK || !allowInteract(e.getPlayer(), e.getClickedBlock(), e.getItem())) && !allowed(e.getPlayer())) {
+
             e.setUseInteractedBlock(Event.Result.DENY);
         }
     }

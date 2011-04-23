@@ -8,7 +8,7 @@ import org.bukkit.util.Vector
 
 class GroovyPlayerRunner extends GroovyRunner {
 
-	GroovyPlayerRunner(GroovyPlugin plugin, Player player, def data) {
+	GroovyPlayerRunner(def plugin, Player player, def data) {
 		super(plugin, data)
 		this.player = player
 		this.world = player.world

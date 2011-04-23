@@ -1,5 +1,7 @@
 /*
-Command: give
+Name: GroovyGive
+
+Command: gg  (renamed from give to not conflict with the built in give)
 
 Arguments:
     material
@@ -9,13 +11,13 @@ Arguments:
 
 Examples:
 
-    give 1
+    gg 1
         give self one stone
 
-    give 5 stone
+    gg 5 stone
         give self 5 stone
 
-    give krsmes 64 arrow
+    gg krsmes 64 arrow
         give krsmes 64 arrows
 
 Notes:
@@ -23,7 +25,8 @@ Notes:
     'material' can be a number or a name... if name is used it should match names in the Material enum
 
  */
-command 'give', { runner, args ->
+command 'gg', { runner, args ->
+    println "/gg: $args"
 	// give player qty material
 	// give qty material
 	// give material
@@ -67,9 +70,14 @@ command 'give', { runner, args ->
 				mat = m(args[2])
 				break
 			default:
-                runner.player.sendMessage "/give to qty material"
+                runner.player.sendMessage "/gg [to] [qty] material"
 		}
-		give rec, i(mat, qty)
+        if (mat) {
+		    give rec, i(mat, qty)
+        }
+        else {
+            "unknown material/item: $args"
+        }
 	}
 }
 
