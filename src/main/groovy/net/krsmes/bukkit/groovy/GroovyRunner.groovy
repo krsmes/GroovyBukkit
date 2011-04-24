@@ -7,7 +7,7 @@ import org.bukkit.plugin.EventExecutor
 import org.yaml.snakeyaml.Yaml
 import org.bukkit.entity.Player
 
-class GroovyRunner extends GroovyAPI implements EventExecutor, Listener {
+class GroovyRunner extends GroovyAPI {
 
 	static SCRIPT_PREFIX = """
 import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import org.bukkit.inventory.*;import org.bukkit.material.*;import org.bukkit.event.*;import org.bukkit.util.*;
@@ -17,10 +17,8 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
     GroovyShell shell
     Map vars
 
-    Map global
+    Map<String,Object> global
 	Map<String,Object> data = [:]
-	Map<String,Closure> listeners = [:]
-    List<Event.Type> registeredTypes = []  // seeing we can't unregister listeners, this list keeps track of what types we've registered
     Player player = null
 
 
@@ -55,8 +53,6 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
     void _shutdown() {
-        def listenerNames = listeners.keySet().asList()
-        listenerNames.each { unlisten(it) }
         _save()
     }
 
@@ -87,7 +83,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
 	def runFile = { scriptName, args ->
-		def script = load(scriptName + GroovyPluginOriginal.SCRIPT_SUFFIX)
+		def script = load(scriptName + GroovyPlugin.SCRIPT_SUFFIX)
 		if (script) {
 			run script, args
 		}
@@ -209,13 +205,11 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 		listen(uniqueName, [(type):c])
 	}
 
-
-	def listen(String uniqueName, Map typeClosureMap, Event.Priority priority = Priority.Normal) {
+    void listen(String uniqueName, Map typedClosureMap) {
         debug "listen(uniqueName=$uniqueName, ...)"
-		unlisten(uniqueName)
+        ListenerClosures.instance.unregister(uniqueName);
 
-		def typedListeners = [:]
-		typeClosureMap.each { def type, closure ->
+        typedClosureMap.each { def type, closure ->
             def eventType
             try {
                 eventType = (type instanceof Event.Type) ? type : Event.Type.valueOf(stringToType(type))
@@ -223,53 +217,26 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
             catch (e) {
                 eventType = Event.Type.CUSTOM_EVENT
             }
-			if (closure instanceof Closure) {
-                def typeName = (eventType == Event.Type.CUSTOM_EVENT ? type : eventType.toString()).toUpperCase()
-				typedListeners[typeName] = closure
-                if (!registeredTypes.contains(eventType)) {
-                    // only register for any given type once (until the pluginManager can support unregistering)
-				    plugin.server.pluginManager.registerEvent(eventType, this, this, priority, plugin)
-                    registeredTypes << eventType
-                }
-			}
-		}
-		if (typedListeners.size() > 0) {
-			this.listeners[uniqueName] = typedListeners
-			log "Registered '$uniqueName' with ${typedListeners.size()} listener(s): ${typedListeners.keySet()}"
-		}
-	}
+            if (closure instanceof Closure) {
+                eventType == Event.Type.CUSTOM_EVENT ?
+                    ListenerClosures.instance.register(uniqueName, type.toString().toUpperCase(), closure) :
+                    ListenerClosures.instance.register(uniqueName, eventType, closure)
+            }
+        }
+    }
 
 
-	void unlisten(String uniqueName) {
-        debug "unlisten(uniqueName=$uniqueName)"
-        if (listeners.containsKey(uniqueName)) {
-			def listeners = listeners.remove(uniqueName)
-			listeners?.clear()
-			debug "unlisten(): unregistered '$uniqueName'"
-		}
-	}
+    void unlisten(String uniqueName) {
+        ListenerClosures.instance.unregister(uniqueName);
+    }
 
 
-	void execute(Listener listener, Event e) {
-        debug "execute(listener, e=$e)"
-        def key = e.eventName.toUpperCase()
-        listeners.values().each { glisteners ->
-			if (glisteners.containsKey(key)) {
-                Closure glistener = glisteners[key]
-                if (e.respondsTo('getPlayer'))
-                    plugin.getRunner(e.player)?.execute(glistener, e)
-				else
-				    execute(glistener, e)
-			}
-		}
-	}
-
-    void execute(Closure closureListener, Event e) {
-        if (closureListener.maximumNumberOfParameters == 1) {
-            closureListener(e)
+    void execute(Closure closure, Event e) {
+        if (closure.maximumNumberOfParameters == 1) {
+            closure(e)
         }
         else {
-            closureListener(this, e)
+            closure(this, e)
         }
     }
 

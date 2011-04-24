@@ -28,11 +28,13 @@ public class Plots implements EventExecutor, Listener {
     public static String ATTR_PLOT_SHOW = "plotShow";
     public static String ATTR_DATA = "plotsData";
     public static String ATTR_PUBLIC = "plotsPublic";
+    public static String ATTR_PLOT_PROTECTION = "plotProtection";
     public static Plots instance;
 
     GroovyPlugin plugin;
     Map<String, Plot> data;
     Plot publicPlot;
+    boolean plotProtection;
 
 
     private Plots(GroovyPlugin plugin) {
@@ -42,7 +44,7 @@ public class Plots implements EventExecutor, Listener {
     }
 
 
-    public static Plots init(GroovyPlugin plugin, Map<String, Object> global) {
+    public static synchronized Plots enable(GroovyPlugin plugin, Map<String, Object> global) {
         Map<String, Plot> data = (Map) global.get(ATTR_DATA);
         if (data == null) {
             data = new HashMap<String, Plot>();
@@ -53,6 +55,8 @@ public class Plots implements EventExecutor, Listener {
             publicPlot = new PublicPlot();
             global.put(ATTR_PUBLIC, publicPlot);
         }
+        boolean plotProtection = (Boolean) global.get(ATTR_PLOT_PROTECTION);
+
         if (instance == null || instance.plugin != plugin) {
             instance = new Plots(plugin);
             instance.register();
@@ -61,51 +65,87 @@ public class Plots implements EventExecutor, Listener {
         log.info("Plots: setting data: "+ data.size() + " plots");
         instance.data = data;
         instance.publicPlot = publicPlot;
+        instance.plotProtection = plotProtection;
         return instance;
     }
 
 
-    public static void stop() {
+    public static synchronized void disable() {
 
     }
 
 
-    public void register() {
-        log.info("Plots: registering");
-        PluginManager mgr = plugin.getServer().getPluginManager();
-        mgr.registerEvent(Event.Type.PLAYER_MOVE, this, this, Event.Priority.High, plugin);
-        mgr.registerEvent(Event.Type.PLAYER_TELEPORT, this, this, Event.Priority.High, plugin);
-    }
-
+//
+// EventExecutor
+//
 
     public void execute(Listener listener, Event event) {
-        Player player;
-        Map<String, Object> playerData;
-        Plot plot;
-        switch (event.getType()) {
-            case PLAYER_MOVE:
-            case PLAYER_TELEPORT:
-                PlayerMoveEvent pme = (PlayerMoveEvent) event;
-                player = pme.getPlayer();
-                playerData = plugin.getData(player);
-                Object plotShow = playerData.get(ATTR_PLOT_SHOW);
-                if (plotShow instanceof Boolean && (Boolean)plotShow) {
-                    Location to = pme.getTo();
-                    int toX = to.getBlockX();
-                    int toZ = to.getBlockZ();
-                    Object current = playerData.get(ATTR_PLOT);
-                    if ((current instanceof Plot) && ((Plot) current).contains(toX, toZ)) {
-                    }
-                    else {
-                        plot = findPlot(toX, toZ);
-                        if (plot != current) {
-                            playerData.put(ATTR_PLOT, plot);
-                            player.sendMessage(ChatColor.DARK_AQUA + "Now in plot " + plot);
+        if (plugin.enabled) {
+            Player player;
+            Map<String, Object> playerData;
+            Plot plot;
+            switch (event.getType()) {
+                case PLAYER_MOVE:
+                case PLAYER_TELEPORT:
+                    PlayerMoveEvent pme = (PlayerMoveEvent) event;
+                    player = pme.getPlayer();
+                    playerData = plugin.getData(player);
+                    Object plotShow = playerData.get(ATTR_PLOT_SHOW);
+                    if (plotShow instanceof Boolean && (Boolean)plotShow) {
+                        Location to = pme.getTo();
+                        int toX = to.getBlockX();
+                        int toZ = to.getBlockZ();
+                        Object current = playerData.get(ATTR_PLOT);
+                        if ((current instanceof Plot) && ((Plot) current).contains(toX, toZ)) {
+                        }
+                        else {
+                            plot = findPlot(toX, toZ);
+                            if (plot != current) {
+                                playerData.put(ATTR_PLOT, plot);
+                                player.sendMessage(ChatColor.DARK_AQUA + "Now in plot " + plot);
+                            }
                         }
                     }
-                }
-                break;
+                    break;
+
+                case BLOCK_DAMAGE:
+                    if (plotProtection) {
+                        BlockDamageEvent bde = (BlockDamageEvent) event;
+                        player = bde.getPlayer();
+                        playerData = plugin.getData(player);
+                        Plot current = (Plot) playerData.get(ATTR_PLOT);
+                        processEvent(current, bde);
+                    }
+                    break;
+
+                case PLAYER_INTERACT:
+                    if (plotProtection) {
+                        PlayerInteractEvent pie = (PlayerInteractEvent) event;
+                        player = pie.getPlayer();
+                        playerData = plugin.getData(player);
+                        Plot current = (Plot) playerData.get(ATTR_PLOT);
+                        processEvent(current, pie);
+                    }
+                    break;
+            }
         }
+    }
+
+
+    public Plot getPublicPlot() {
+        return publicPlot;
+    }
+
+    public void setPublicPlot(Plot publicPlot) {
+        this.publicPlot = publicPlot;
+    }
+
+    public boolean isPlotProtection() {
+        return plotProtection;
+    }
+
+    public void setPlotProtection(boolean plotProtection) {
+        this.plotProtection = plotProtection;
     }
 
 
@@ -180,7 +220,22 @@ public class Plots implements EventExecutor, Listener {
     }
 
 
-    public void processEvent(Plot firstCheck, PlayerInteractEvent e) {
+
+//
+// helper methods
+//
+
+    protected void register() {
+        log.info("Plots: registering");
+        PluginManager mgr = plugin.getServer().getPluginManager();
+        mgr.registerEvent(Event.Type.PLAYER_MOVE, this, this, Event.Priority.High, plugin);
+        mgr.registerEvent(Event.Type.PLAYER_TELEPORT, this, this, Event.Priority.High, plugin);
+        mgr.registerEvent(Event.Type.BLOCK_DAMAGE, this, this, Event.Priority.High, plugin);
+        mgr.registerEvent(Event.Type.PLAYER_INTERACT, this, this, Event.Priority.High, plugin);
+    }
+
+
+    protected void processEvent(Plot firstCheck, PlayerInteractEvent e) {
         Block block = e.getClickedBlock();
         if (block != null) {
             findPlot(firstCheck, block.getX(), block.getZ()).processEvent(e);
@@ -188,7 +243,7 @@ public class Plots implements EventExecutor, Listener {
     }
 
 
-    public void processEvent(Plot firstCheck, BlockDamageEvent e) {
+    protected void processEvent(Plot firstCheck, BlockDamageEvent e) {
         Block block = e.getBlock();
         findPlot(firstCheck, block.getX(), block.getZ()).processEvent(e);
     }

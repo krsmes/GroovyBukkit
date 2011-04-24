@@ -8,6 +8,7 @@ import org.bukkit.event.Event;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.PluginManager;
@@ -20,6 +21,11 @@ import java.util.logging.Logger;
 public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener {
     static Logger LOG = Logger.getLogger("Minecraft");
 
+    public static final String SCRIPT_LOC = "scripts/";
+    public static final String STARTUP_LOC = SCRIPT_LOC + "startup/";
+    public static final String PLAYER_LOC = SCRIPT_LOC + "players/";
+    public static final String SCRIPT_SUFFIX = ".groovy";
+
     public static final String DATA_TEMP = "temp";
     public static final String DATA_LAST_COMMAND = "lastCommand";
     public static final String DATA_LAST_RESULT = "last";
@@ -30,6 +36,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     public static GroovyPlugin instance;
 
     boolean enabled;
+    boolean registered;
     Map<String, Object> global;
     Map<String, Closure> commands;
     Map<String, GroovyPlayerRunner> playerRunners;
@@ -47,7 +54,14 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
 
     public GroovyRunner getRunner(Player player) {
-        return (player == null) ? runner : getRunner(player.getName());
+        if (player == null) {
+            return runner;
+        }
+        GroovyRunner r = playerRunners.get(player.getName());
+        if (r != null) {
+            r.setPlayer(player);
+        }
+        return r;
     }
 
 
@@ -57,7 +71,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
 
     public Map<String, Object> getData(Player player) {
-        return (player == null) ? global : getRunner(player.getName()).getData();
+        return (player == null) ? global : getRunner(player).getData();
     }
 
 
@@ -74,19 +88,22 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             commands = new HashMap<String, Closure>();
             playerRunners = new HashMap<String, GroovyPlayerRunner>();
 
+            ListenerClosures.enable(this, global);
+
             runner = new GroovyRunner(this, global);
             runner._init();
 
             global.put(DATA_TEMP, new HashMap());
 
             registerEventHandlers();
-            Plots.init(this, global);
-            Events.init(this, global);
+            Plots.enable(this, global);
+            Events.enable(this, global);
 
             enabled = true;
             LOG.info(getDescription().getName() + ' ' + getDescription().getVersion() + " enabled");
         }
         catch (Exception e) {
+            e.printStackTrace();
             LOG.info("Could not enable " + getDescription().getName() + ' ' + getDescription().getVersion());
         }
     }
@@ -96,6 +113,8 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
         enabled = false;
         instance = null;
         try {
+            ListenerClosures.disable();
+
             runner._shutdown();
             runner = null;
 
@@ -108,8 +127,8 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             commands.clear();
             commands = null;
 
-            Events.stop();
-            Plots.stop();
+            Events.disable();
+            Plots.disable();
 
             global.clear();
             global = null;
@@ -119,6 +138,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             LOG.info(getDescription().getName() + ' ' + getDescription().getVersion() + " disabled");
         }
         catch (Exception e) {
+            e.printStackTrace();
             LOG.info("Error disabling " + getDescription().getName() + ' ' + getDescription().getVersion());
         }
     }
@@ -155,6 +175,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             switch (event.getType()) {
                 case PLAYER_COMMAND_PREPROCESS: onCommandPreprocess((PlayerCommandPreprocessEvent) event); break;
                 case WORLD_SAVE: onSave(); break;
+                case PLAYER_LOGIN: onLogin((PlayerLoginEvent) event); break;
                 case PLAYER_JOIN: onJoin((PlayerJoinEvent) event); break;
                 case PLAYER_QUIT: onQuit((PlayerQuitEvent) event); break;
             }
@@ -168,6 +189,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 //
 
 
+    @SuppressWarnings({"unchecked"})
     public boolean permitted(Player player, String command) {
         Map<String, List<String>> permissions = (Map) global.get(DATA_PERMISSIONS);
         if (player == null || permissions == null) {
@@ -191,11 +213,15 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 //
 
     protected void registerEventHandlers() {
-        PluginManager mgr = getServer().getPluginManager();
-        mgr.registerEvent(Event.Type.PLAYER_COMMAND_PREPROCESS, this, this, Event.Priority.High, this);
-        mgr.registerEvent(Event.Type.WORLD_SAVE, this, this, Event.Priority.Low, this);
-        mgr.registerEvent(Event.Type.PLAYER_JOIN, this, this, Event.Priority.Highest, this);
-        mgr.registerEvent(Event.Type.PLAYER_QUIT, this, this, Event.Priority.Lowest, this);
+        if (!registered) {
+            PluginManager mgr = getServer().getPluginManager();
+            mgr.registerEvent(Event.Type.PLAYER_COMMAND_PREPROCESS, this, this, Event.Priority.High, this);
+            mgr.registerEvent(Event.Type.PLAYER_LOGIN, this, this, Event.Priority.Highest, this);
+            mgr.registerEvent(Event.Type.PLAYER_JOIN, this, this, Event.Priority.High, this);
+            mgr.registerEvent(Event.Type.PLAYER_QUIT, this, this, Event.Priority.Lowest, this);
+            mgr.registerEvent(Event.Type.WORLD_SAVE, this, this, Event.Priority.Low, this);
+            registered = true;
+        }
     }
 
 
@@ -222,10 +248,15 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
         }
     }
 
+
+    protected void onLogin(PlayerLoginEvent e) {
+        initializePlayer(e.getPlayer());
+    }
+
+
     protected void onJoin(PlayerJoinEvent e) {
         Player player = e.getPlayer();
         if (GROOVY_GOD.equals(player.getName())) { e.setJoinMessage(null); }
-        initializePlayer(player);
         String joinMessage = (String) global.get(DATA_JOIN_MESSAGE);
         if (joinMessage != null) { player.sendMessage(joinMessage); }
     }
@@ -264,7 +295,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
     protected Object command_g(Player player, String[] args) {
         Object result = null;
-        GroovyRunner r = (player == null) ? runner : playerRunners.get(player.getName());
+        GroovyRunner r = getRunner(player);
         if (r != null) {
             String script = (args != null && args.length > 0) ? Util.join(" ", args) : (String) r.getData().get(DATA_LAST_COMMAND);
             r.getData().put(DATA_LAST_COMMAND, script);

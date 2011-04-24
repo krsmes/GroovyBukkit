@@ -75,7 +75,7 @@ def killBlock(Block block) {
     //println "killBlock(): $block"
     if (block.y > 1) {
         block.type = Material.AIR
-        block.state.update(true)
+        //block.state.update(true)
     }
 }
 
@@ -148,13 +148,13 @@ def incrementData(Block block) {
     def blockIncrementType = global.temp.blockIncrementType
     if (blockIncrementType.containsKey(block.type)) {
         block.type = blockIncrementType[block.type]
-        block.state.update(true)
+        //block.state.update(true)
     }
     else {
         def blockDataMax = global.temp.blockDataMax
         block.data += 1
         if (block.data > 15 || (blockDataMax.containsKey(block.type) && block.data > blockDataMax[block.type])) block.data = 0
-        block.state.update(true)
+        //block.state.update(true)
     }
 }
 
@@ -166,7 +166,7 @@ def changeClickedBlockToItem(Block block, ItemStack item) {
     else {
         block.type = item.type
         block.data = item.durability // ???
-        block.state.update(true)
+        //block.state.update(true)
     }
 }
 
@@ -175,7 +175,7 @@ def duplicateBlock(Block block, BlockFace face) {
     def dup = block + face
     dup.type = block.type
     dup.data = block.data
-    dub.state.update(true)
+    //dup.state.update(true)
 }
 
 

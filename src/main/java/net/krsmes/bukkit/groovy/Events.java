@@ -26,14 +26,14 @@ public class Events implements Runnable {
     }
 
 
-    public static Events init(GroovyPlugin plugin, Map<String, Object> global) {
-        if (instance == null) {
+    public static synchronized Events enable(GroovyPlugin plugin, Map<String, Object> global) {
+        if (instance == null || instance.plugin != plugin) {
             instance = new Events(plugin);
         }
         return instance;
     }
 
-    public static void stop() {
+    public static synchronized void disable() {
         if (instance != null) {
             instance.unschedule();
             instance = null;
@@ -71,4 +71,5 @@ public class Events implements Runnable {
     protected void unschedule() {
         plugin.getServer().getScheduler().cancelTask(taskId);
     }
+
 }

@@ -174,7 +174,8 @@ command 'plot-close', { runner, args ->
 
 command 'plot-protection', { runner, args ->
     if (args) global.plotProtection = (args[0] == 'on')
-    "Plot protection is ${global.plotProtection?'on':'off'}"
+    plots().plotProtection = global.plotProtection
+    "Plot protection is ${plots().plotProtection?'on':'off'}"
 }
 
 
@@ -267,26 +268,12 @@ command 'plot-max', { runner, args ->
 
 
 [
-
     (Event.Type.PLAYER_JOIN): { runner, PlayerJoinEvent e ->
         if (!runner.data.containsKey('plotShow')) {
             runner.data.plotShow = true
         }
-        if (global.plotProtection) {
+        if (plots().plotProtection) {
             runner.player.sendMessage "This server has plot protection, see '/plot-help'"
         }
-    },
-
-    (Event.Type.BLOCK_DAMAGE): { runner, BlockDamageEvent e ->
-        if (global.plotProtection) {
-            plots().processEvent(runner.data.plot, e)
-        }
-    },
-
-    (Event.Type.PLAYER_INTERACT): { runner, PlayerInteractEvent e ->
-        if (global.plotProtection) {
-            plots().processEvent(runner.data.plot, e)
-        }
     }
-
 ]

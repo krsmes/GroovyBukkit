@@ -19,7 +19,7 @@ class GroovyAPI {
 	static Logger _log = Logger.getLogger("Minecraft")
     static gdebug = false
 
-	def scriptLoc = GroovyPluginOriginal.SCRIPT_LOC
+	def scriptLoc = GroovyPlugin.SCRIPT_LOC
 
 	World world
 	Server server
