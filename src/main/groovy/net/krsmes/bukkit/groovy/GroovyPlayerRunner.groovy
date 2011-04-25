@@ -16,7 +16,7 @@ class GroovyPlayerRunner extends GroovyRunner {
 
 
 	def get_initScriptsLoc() {
-		scriptLoc + player.name + '/'
+        GroovyPlugin.PLAYER_LOC + player.name + '/'
 	}
 
 

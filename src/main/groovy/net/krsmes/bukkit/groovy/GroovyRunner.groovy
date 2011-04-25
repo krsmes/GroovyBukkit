@@ -73,7 +73,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
     def get_initScriptsLoc() {
-		scriptLoc + 'startup/'
+		GroovyPlugin.STARTUP_LOC
 	}
 
 
@@ -148,13 +148,13 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
 	def _initShell(data) {
-		shell = new GroovyShell()
+		shell = new GroovyShell(plugin.class.classLoader)
 		vars = shell.context.variables
 		vars.g = this
 		vars.s = server
 		vars.global = global
 		vars.data = data
-        vars.util = net.krsmes.bukkit.groovy.Util
+        vars.Util = net.krsmes.bukkit.groovy.Util
         shell
 	}
 

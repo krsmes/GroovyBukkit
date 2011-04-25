@@ -1,7 +1,7 @@
 import org.bukkit.event.Event
-import org.bukkit.event.block.BlockDamageEvent
-import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerJoinEvent
+import net.krsmes.bukkit.groovy.GroovyRunner
+import net.krsmes.bukkit.groovy.Plots
 
 /*
 Commands:
@@ -58,70 +58,71 @@ def playerPlot(player, Closure c) {
 
 def defaultMaxOwned = 1
 
-command 'plot-help', { runner, args ->
-    [
-        "/plot  : show info about current plot",
-        "/plot on|off  : show|hide entering/leaving plots",
-        "/plot-list  : list all plots",
-        "/plot-claim  : claim the current plot",
-        "/plot-release  : release claim on current plot",
-        "/plot-invite USER  : invite users to work on the plot",
-        "/plot-home  : set the home location of this plot",
-        "/plot-open  : set this plot to open land",
-        "/plot-close  : set this plot to closed land"
-    ].each { runner.player.sendMessage it }
+command 'plot-help', { GroovyRunner r, List args ->
+    def help = []
+    if (r.permitted('plot')) {
+        help << "/plot  :show info about current plot"
+        help << "/plot on|off  :show|hide entering/leaving plots"
+    }
+    if (r.permitted('plot-list'))       "/plot-list  :list all plots"
+    if (r.permitted('plot-claim'))      "/plot-claim  :claim the current plot"
+    if (r.permitted('plot-release'))    "/plot-release  :release claim on current plot"
+    if (r.permitted('plot-invite'))     "/plot-invite USER  :invite users to work on the plot"
+    if (r.permitted('plot-home'))       "/plot-home  :set the home location of this plot"
+    if (r.permitted('plot-open'))       "/plot-open  :set this plot to open land"
+    if (r.permitted('plot-close'))      "/plot-close  :set this plot to closed land"
+    help.each { r.player.sendMessage it }
     null
 }
 
-command 'plot', { runner, args ->
+command 'plot', { GroovyRunner r, List args ->
     if (args) {
         if (args[0] in ['on','off']) {
-            runner.data.plotShow = args[0] == 'on'
-            if (!runner.data.plotShow) runner.data.plot = null
-            return "Show plot while moving is ${runner.data.plotShow?'on':'off'}"
+            r.data.plotShow = args[0] == 'on'
+            if (!r.data.plotShow) r.data.plot = null
+            return "Show plot while moving is ${r.data.plotShow?'on':'off'}"
         }
         return "Unknown plot command: ${args[0]}"
     }
-    def plot = plots().findPlot(runner.player)
-    if (plot) {
-        [
-            "Plot: $plot.name (${plot.open?'open':'closed'} land)",
-            "Size: $plot.size (${plot.areas?.size()?:0} area(s))",
-            "Owner: ${plot.owner ?: 'unclaimed'} ${p(plot.owner)?.online?'(online)':'(offline)'}",
-            "Visitor: $plot.visitors"
-        ].each { runner.player.sendMessage it }
-        "You are ${plot.allowed(runner.player) ? '' : 'not '}allowed to work here"
+    def plot = plots().findPlot(r.player)
+    if (!plot) return "You are not in a plotted area"
+
+    [
+        "Plot: $plot.name (${plot.open?'open':'closed'} land)",
+        "Size: $plot.size (${plot.areas?.size()?:0} area(s))",
+        "Owner: ${plot.owner ?: 'unclaimed'} ${p(plot.owner)?.online?'(online)':'(offline)'}",
+        "Visitor: $plot.visitors"
+    ].each { r.player.sendMessage it }
+    "You are ${plot.allowed(r.player) ? '' : 'not '}allowed to work here"
+}
+
+
+command 'plot-list', { GroovyRunner r, List args ->
+    r.plots().data.values().name.toString()
+}
+
+
+command 'plot-claim', { GroovyRunner r, List args ->
+    def plot = r.plots().findPlot(r.player)
+    if (!plot || plot.public) return "Your are not in a plot"
+
+    if (plot.owner) return "This plot already owned by $plot.owner"
+
+    def ownedPlots = r.plots().findOwnedPlots(r.player.name)
+    def allowed = r.data.plotMaxOwned ?: r.global.plotMaxOwned ?: defaultMaxOwned
+    def owned = ownedPlots?.size() ?: 0
+    if (owned >= allowed) {
+        "You are not allowed to own additional plots ($owned>=$allowed)"
     }
-    else
-        "You are not in a plotted area"
-}
-
-command 'plot-list', { runner, args ->
-    runner.global?.plots?.data?.values()?.name?.toString()
-}
-
-command 'plot-claim', { runner, args ->
-    def plot = plots().findPlot(runner.player)
-    if (plot && !plot.public)
-        if (!plot.owner) {
-            def ownedPlots = plots().findOwnedPlots(runner.player.name)
-            def allowed = runner.data.plotMaxOwned ?: global.plotMaxOwned ?: defaultMaxOwned
-            def owned = ownedPlots?.size() ?: 0
-            if (owned >= allowed) {
-                "You are not allowed to own additional plots ($owned>=$allowed)"
-            }
-            else {
-                plot.owner = runner.player.name
-                "You are now the owner of plot '$plot.name'"
-            }
-        }
-        else "This plot already owned by $plot.owner"
-    else "Your are not in a plot"
+    else {
+        plot.owner = r.player.name
+        "You are now the owner of plot '$plot.name'"
+    }
 }
 
 
-command 'plot-release', { runner, args ->
-    playerPlot(runner.player) { plot ->
+command 'plot-release', { GroovyRunner r, List args ->
+    playerPlot(r.player) { plot ->
         plot.owner = null
         plot.open = false
         "Plot '$plot.name' is now not owned by anyone"
@@ -129,8 +130,8 @@ command 'plot-release', { runner, args ->
 }
 
 
-command 'plot-invite', { runner, args ->
-    playerPlot(runner.player) { plot ->
+command 'plot-invite', { GroovyRunner r, List args ->
+    playerPlot(r.player) { plot ->
         args.each {
             if (it.startsWith('-')) {
                 def name = it.substring(1)
@@ -147,24 +148,24 @@ command 'plot-invite', { runner, args ->
 }
 
 
-command 'plot-home', { runner, args ->
-    playerPlot(runner.player) { plot ->
-        plot.home = runner.player.location
+command 'plot-home', { GroovyRunner r, List args ->
+    playerPlot(r.player) { plot ->
+        plot.home = r.player.location
         "Plot '$plot.name' home set to $plot.home"
     }
 }
 
 
-command 'plot-open', { runner, args ->
-    playerPlot(runner.player) { plot ->
+command 'plot-open', { GroovyRunner r, List args ->
+    playerPlot(r.player) { plot ->
         plot.open = true
         "Plot '$plot.name' is now open land"
     }
 }
 
 
-command 'plot-close', { runner, args ->
-    playerPlot(runner.player) { plot ->
+command 'plot-close', { GroovyRunner r, List args ->
+    playerPlot(r.player) { plot ->
         plot.open = false
         "Plot '$plot.name' is now closed land"
     }
@@ -172,43 +173,49 @@ command 'plot-close', { runner, args ->
 
 
 
-command 'plot-protection', { runner, args ->
+command 'plot-protection', { GroovyRunner r, List args ->
     if (args) global.plotProtection = (args[0] == 'on')
     plots().plotProtection = global.plotProtection
     "Plot protection is ${plots().plotProtection?'on':'off'}"
 }
 
 
-command 'plot-create', { runner, args ->
-    if (runner.data.stickClicks?.size() > 1 && args?.size() > 0) {
-        def plot_name = args.join(' ')
-        if (plot_name.equalsIgnoreCase('public'))
-            "You cannot create plot named 'public"
-        else {
-            if (!plots().findPlot(plot_name)) {
-                def plot_loc1 = runner.data.stickClicks[0]
-                def plot_loc2 = runner.data.stickClicks[1]
-                def a = area(plot_loc1, plot_loc2)
-                if (plots().createPlot(plot_name, a, runner.world))
-                    "Plot '$plot_name' created with area $a"
-                else
-                    "Unable to create plot '$plot_name'"
-            }
-            else "Plot '$plot_name' already exists"
-        }
+command 'plot-create', { GroovyRunner r, List args ->
+    if (args?.size() == 0) return "Name meeded to create plot"
+
+    def plot_name = args[0]
+    if (plot_name.equalsIgnoreCase('public')) return "You cannot create plot named 'public'"
+    if (r.plots().findPlot(plot_name)) return "Plot '$plot_name' already exists"
+
+    def plot_loc1 = null
+    def plot_loc2 = null
+
+    // TODO: alternate ways of identifying a plot
+    if (r.data.stickClicks?.size() > 1) {
+        plot_loc1 = r.data.stickClicks[0]
+        plot_loc2 = r.data.stickClicks[1]
     }
-    else "To create you need 2 stick-clicks (${runner.data.stickClicks?.size()}) and a name"
+
+    if (!plot_loc1 || !plot_loc2) return "Unable to identify plot perimeter"
+
+    def a = r.area(plot_loc1, plot_loc2)
+
+    if (r.plots().createPlot(plot_name, a, r.world))
+        "Plot '$plot_name' created with area $a"
+    else
+        "Unable to create plot '$plot_name'"
 }
 
-command 'plot-add', { runner, args ->
-    if (runner.data.stickClicks?.size() > 1) {
-        def plot_name = runner.data.plot?.name
+
+command 'plot-add', { GroovyRunner r, List args ->
+    if (r.data.stickClicks?.size() > 1) {
+        def plot_name = r.data.plot?.name
         if (args?.size() > 0) plot_name = args.join(' ')
         if (plot_name) {
             def plot = plots().findPlot(plot_name)
             if (plot) {
-                def plot_loc1 = runner.data.stickClicks[0]
-                def plot_loc2 = runner.data.stickClicks[1]
+                def plot_loc1 = r.data.stickClicks[0]
+                def plot_loc2 = r.data.stickClicks[1]
                 def a = area(plot_loc1, plot_loc2)
                 plot.addArea(a)
                 "$a added to $plot"
@@ -221,9 +228,9 @@ command 'plot-add', { runner, args ->
 }
 
 
-command 'plot-assign', { runner, args ->
+command 'plot-assign', { GroovyRunner r, List args ->
     if (args) {
-        def plot = plots().findPlot(runner.player)
+        def plot = plots().findPlot(r.player)
         if (!plot.public) {
             plot.owner = args[0]
             "Plot '$plot.name' is now owned by $plot.owner"
@@ -234,13 +241,13 @@ command 'plot-assign', { runner, args ->
 }
 
 
-command 'plot-delete', { runner, args ->
-    def plot_name = runner.data.plot?.name
+command 'plot-delete', { GroovyRunner r, List args ->
+    def plot_name = r.data.plot?.name
     if (args?.size() > 0) plot_name = args.join(' ')
     if (plot_name) {
-        def plot = plots().findPlot(plot_name)
+        def plot = r.plots().findPlot(plot_name)
         if (plot) {
-            plots().removePlot(plot_name)
+            r.plots().removePlot(plot_name)
             "Plot '$plot_name' has been deleted"
         }
         else "Plot '$plot_name' not found"
@@ -249,7 +256,7 @@ command 'plot-delete', { runner, args ->
 }
 
 
-command 'plot-max', { runner, args ->
+command 'plot-max', { GroovyRunner r, List args ->
     if (args) {
         if (args.size()==2) {
             def name = args[0]
@@ -259,7 +266,7 @@ command 'plot-max', { runner, args ->
         }
         else {
             def qty = args[1].toInteger()
-            global.plotMaxOwned = qty
+            r.global.plotMaxOwned = qty
             "Default maximum owned plots is now $global.plotMaxOwned"
         }
     }
@@ -268,12 +275,12 @@ command 'plot-max', { runner, args ->
 
 
 [
-    (Event.Type.PLAYER_JOIN): { runner, PlayerJoinEvent e ->
-        if (!runner.data.containsKey('plotShow')) {
-            runner.data.plotShow = true
+    (Event.Type.PLAYER_JOIN): { GroovyRunner r, PlayerJoinEvent e ->
+        if (!r.data.containsKey('plotShow')) {
+            r.data.plotShow = true
         }
-        if (plots().plotProtection) {
-            runner.player.sendMessage "This server has plot protection, see '/plot-help'"
+        if (r.plots().plotProtection) {
+            r.player.sendMessage "This server has plot protection, see '/plot-help'"
         }
     }
 ]
