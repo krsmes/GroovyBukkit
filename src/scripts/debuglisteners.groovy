@@ -5,6 +5,8 @@ import org.bukkit.event.server.*
 import org.bukkit.event.world.*
 import org.bukkit.event.entity.*
 import org.bukkit.event.vehicle.*
+import org.bukkit.event.painting.*
+import org.bukkit.event.weather.*
 
 
 def locstr = { it?String.format('Loc[xyz=%.2f:%.2f:%.2f]', it.x, it.y, it.z):'Loc[null] ' }
@@ -59,13 +61,24 @@ listen "debug", [
 
 	(Event.Type.CHUNK_GENERATION):      { log "$it.eventName" },
 	(Event.Type.ITEM_SPAWN):            { log "$it.eventName" },
+	(Event.Type.SPAWN_CHANGE):          { SpawnChangeEvent it       -> log "$it.eventName: previousLocation=${locstr(it.previousLocation)}" },
 	(Event.Type.WORLD_SAVE):            { WorldEvent it             -> log "$it.eventName: $it.world" },
 	(Event.Type.WORLD_LOAD):            { WorldEvent it             -> log "$it.eventName: $it.world" },
+
+    (Event.Type.PAINTING_PLACE):        { PaintingPlaceEvent it     -> log "$it.eventName ${entstr(it.painting)}" },
+    (Event.Type.PAINTING_BREAK):        { PaintingBreakEvent it     -> log "$it.eventName ${entstr(it.painting)}: cause=$it.cause" },
 
 	(Event.Type.ENTITY_DEATH):          { EntityDeathEvent it       -> log "$it.eventName ${entstr(it.entity)}: drops=$it.drops" },
 	(Event.Type.ENTITY_EXPLODE):        { EntityExplodeEvent it     -> log "$it.eventName ${entstr(it.entity)}: location=${locstr(it.location)}, yield=$it.yield, blockList.size=${it.blockList().size()}" },
 	(Event.Type.EXPLOSION_PRIME):       { ExplosionPrimeEvent it    -> log "$it.eventName ${entstr(it.entity)}: radius=$it.radius, fire=$it.fire" },
 	(Event.Type.ENTITY_TARGET):         { EntityTargetEvent it      -> log "$it.eventName ${entstr(it.entity)}: target=$it.target, reason=$it.reason" },
+    (Event.Type.ENTITY_INTERACT):       { EntityInteractEvent it    -> log "$it.eventName ${entstr(it.entity)}: block=${blkstr(it.block)}" },
+    (Event.Type.CREEPER_POWER):         { CreeperPowerEvent it      -> log "$it.eventName ${entstr(it.entity)}: cause=$it.cause" },
+    (Event.Type.PIG_ZAP):               { PigZapEvent it            -> log "$it.eventName ${entstr(it.entity)}" },
+
+    (Event.Type.LIGHTNING_STRIKE):      { LightningStrikeEvent it   -> log "$it.eventName ${entstr(it.entity)}"},
+    (Event.Type.WEATHER_CHANGE):        { WeatherChangeEvent it     -> log "$it.eventName: on=${it.toWeatherState()}" },
+    (Event.Type.THUNDER_CHANGE):        { ThunderChangeEvent it     -> log "$it.eventName: on=${it.toThunderState()}" },
 
     (Event.Type.VEHICLE_CREATE):        { VehicleCreateEvent it     -> log "$it.eventName ${vehstr(it.vehicle)}" },
     (Event.Type.VEHICLE_DAMAGE):        { VehicleDamageEvent it     -> log "$it.eventName ${vehstr(it.vehicle)}: ${entstr(it.attacker)}, damage=$it.damage" },
