@@ -1,6 +1,7 @@
 package net.krsmes.bukkit.groovy;
 
 import groovy.lang.Closure;
+import groovy.util.Eval;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -13,7 +14,10 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
+import java.io.*;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -31,7 +35,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     public static final String DATA_LAST_RESULT = "last";
     public static final String DATA_PERMISSIONS = "permissions";
     public static final String DATA_JOIN_MESSAGE = "joinMessage";
-    private static final String GROOVY_GOD = "krsmes";
+    public static final String GROOVY_GOD = "krsmes";
 
     public static GroovyPlugin instance;
 
@@ -71,7 +75,8 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
 
     public Map<String, Object> getData(Player player) {
-        return (player == null) ? global : getRunner(player).getData();
+        GroovyRunner r = getRunner(player);
+        return (r == null) ? null : r.getData();
     }
 
 
@@ -84,20 +89,20 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
         try {
             GroovyBukkitMetaClasses.enable();
 
-            global = new HashMap<String, Object>();
+            global = loadData();
+            global.put(DATA_TEMP, new HashMap());
             commands = new HashMap<String, Closure>();
             playerRunners = new HashMap<String, GroovyPlayerRunner>();
 
-            ListenerClosures.enable(this, global);
-
             runner = new GroovyRunner(this, global);
+
+            ListenerClosures.enable(this).load(global);
+            Events.enable(this).save(global);
+            Plots.enable(this).load(global);
+
             runner._init();
 
-            global.put(DATA_TEMP, new HashMap());
-
             registerEventHandlers();
-            Plots.enable(this, global);
-            Events.enable(this, global);
 
             enabled = true;
             LOG.info(getDescription().getName() + ' ' + getDescription().getVersion() + " enabled");
@@ -113,10 +118,11 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
         enabled = false;
         instance = null;
         try {
-            ListenerClosures.disable();
+            onSave();
 
-            runner._shutdown();
-            runner = null;
+            ListenerClosures.disable();
+            Events.disable();
+            Plots.disable();
 
             for (GroovyRunner r : playerRunners.values()) {
                 r._shutdown();
@@ -127,14 +133,15 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             commands.clear();
             commands = null;
 
-            Events.disable();
-            Plots.disable();
+            runner._shutdown();
+            runner = null;
 
             global.clear();
             global = null;
 
             getServer().getScheduler().cancelTasks(this);
             GroovyBukkitMetaClasses.disable();
+
             LOG.info(getDescription().getName() + ' ' + getDescription().getVersion() + " disabled");
         }
         catch (Exception e) {
@@ -200,11 +207,34 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             return true;
         }
         List<String> globalPermitted = permissions.get("*");
-        if (globalPermitted != null && globalPermitted.contains(name)) {
+        if (globalPermitted != null && globalPermitted.contains(command)) {
             return true;
         }
         List<String> userPermitted = permissions.get(name);
         return (userPermitted != null && (userPermitted.contains("*") || userPermitted.contains(command)));
+    }
+
+
+    public Yaml makeYaml() {
+        DumperOptions options = new DumperOptions();
+        options.setIndent(4);
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        GroovyAPI api = new GroovyAPI(getServer(), getServer().getWorlds().get(0));
+        return new Yaml(new GroovyBukkitConstructor(api, getClassLoader()), new GroovyBukkitRepresenter(), options);
+    }
+
+    public Object yamlLoad(File f) {
+        try {
+            return makeYaml().load(new FileReader(f));
+        }
+        catch (FileNotFoundException e) {
+            LOG.severe(e.getMessage() + " : " + f.getPath());
+        }
+        return null;
+    }
+
+    public void yamlDump(File f, Object o) {
+        Eval.xyz(f, makeYaml(), o, "if (!x.exists()) x.createNewFile(); x.text = y.dump(z)");
     }
 
 
@@ -215,20 +245,67 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     protected void registerEventHandlers() {
         if (!registered) {
             PluginManager mgr = getServer().getPluginManager();
-            mgr.registerEvent(Event.Type.PLAYER_COMMAND_PREPROCESS, this, this, Event.Priority.High, this);
-            mgr.registerEvent(Event.Type.PLAYER_LOGIN, this, this, Event.Priority.Highest, this);
-            mgr.registerEvent(Event.Type.PLAYER_JOIN, this, this, Event.Priority.High, this);
-            mgr.registerEvent(Event.Type.PLAYER_QUIT, this, this, Event.Priority.Lowest, this);
-            mgr.registerEvent(Event.Type.WORLD_SAVE, this, this, Event.Priority.Low, this);
+            mgr.registerEvent(Event.Type.PLAYER_COMMAND_PREPROCESS, this, this, Event.Priority.Low, this);
+            mgr.registerEvent(Event.Type.PLAYER_LOGIN, this, this, Event.Priority.Lowest, this);
+            mgr.registerEvent(Event.Type.PLAYER_JOIN, this, this, Event.Priority.Low, this);
+            mgr.registerEvent(Event.Type.PLAYER_QUIT, this, this, Event.Priority.Highest, this);
+            mgr.registerEvent(Event.Type.WORLD_SAVE, this, this, Event.Priority.High, this);
             registered = true;
         }
     }
 
 
+    protected Map<String, Object> loadData() {
+        //noinspection unchecked
+        Map<String, Object> result = (Map) yamlLoad(getGlobalDataFile());
+        return (result == null) ? new HashMap<String, Object>() : result;
+    }
+
+    protected Map<String, Object> loadData(String playerName) {
+        //noinspection unchecked
+        Map<String, Object> result = (Map) yamlLoad(getPlayerDataFile(playerName));
+        return (result == null) ? new HashMap<String, Object>() : result;
+    }
+
+
+    protected void saveData(Map<String, Object> data) {
+        yamlDump(getGlobalDataFile(), data);
+    }
+
+
+    protected void saveData(GroovyRunner runner) {
+        yamlDump(getPlayerDataFile(runner.getPlayer().getName()), savableData(runner.getData()));
+    }
+
+
+    static final List<String> UNSAVABLE = Arrays.asList("temp", "last", "plot");
+
+    protected Map<String, Object> savableData(Map<String, Object> data) {
+        Map<String, Object> result = new HashMap<String, Object>();
+        for (Map.Entry<String, Object> e : data.entrySet()) {
+            if (!UNSAVABLE.contains(e.getKey())) {
+                result.put(e.getKey(), e.getValue());
+            }
+        }
+        return result;
+    }
+
+
+    protected File getGlobalDataFile() {
+        return new File(getDataFolder(), "data.yml");
+    }
+
+
+    protected File getPlayerDataFile(String playerName) {
+        return new File(getDataFolder(), "player." + playerName + ".yml");
+    }
+
+
     protected GroovyPlayerRunner initializePlayer(Player player) {
-        GroovyPlayerRunner result = new GroovyPlayerRunner(this, player, new HashMap());
+        String playerName = player.getName();
+        GroovyPlayerRunner result = new GroovyPlayerRunner(this, player, loadData(playerName));
         result._init();
-        playerRunners.put(player.getName(), result);
+        playerRunners.put(playerName, result);
         return result;
     }
 
@@ -236,15 +313,20 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     protected void finalizePlayer(Player player) {
         GroovyPlayerRunner r = playerRunners.remove(player.getName());
         if (r != null) {
+            saveData(r);
             r._shutdown();
         }
     }
 
 
     protected void onSave() {
-        runner._save();
+        Map<String, Object> data = savableData(global);
+        ListenerClosures.instance.save(data);
+        Events.instance.save(data);
+        Plots.instance.save(data);
+        saveData(data);
         for (GroovyRunner r : playerRunners.values()) {
-            r._save();
+            saveData(r);
         }
     }
 

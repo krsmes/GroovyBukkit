@@ -30,7 +30,7 @@ public class ListenerClosures implements EventExecutor, Listener {
     }
 
 
-    public static synchronized ListenerClosures enable(GroovyPlugin plugin, Map<String, Object> global) {
+    public static synchronized ListenerClosures enable(GroovyPlugin plugin) {
         if (instance == null || instance.plugin != plugin) {
             instance = new ListenerClosures(plugin);
         }
@@ -48,6 +48,13 @@ public class ListenerClosures implements EventExecutor, Listener {
         }
     }
 
+
+    public synchronized void load(Map<String, Object> global) {
+    }
+
+
+    public synchronized void save(Map<String, Object> global) {
+    }
 
 //
 // EventExecutor

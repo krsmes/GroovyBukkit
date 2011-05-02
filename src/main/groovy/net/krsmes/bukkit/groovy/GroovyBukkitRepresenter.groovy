@@ -1,66 +1,52 @@
 package net.krsmes.bukkit.groovy
 
-import org.yaml.snakeyaml.nodes.Tag
 import org.yaml.snakeyaml.representer.Represent
 import org.yaml.snakeyaml.representer.Representer
 
 import org.bukkit.Location
-import org.bukkit.entity.Player
 import org.bukkit.Material
 import org.bukkit.inventory.ItemStack
 import org.bukkit.craftbukkit.entity.CraftPlayer
+import org.bukkit.craftbukkit.CraftWorld
 
 
 class GroovyBukkitRepresenter extends Representer
 {
 
 	GroovyBukkitRepresenter() {
-		def rep = [
-			representData: { data ->
-				String value = null
-				if (data instanceof Location) {
-					value = gLocation(data)
-				}
-				else if (data instanceof Vector) {
-					value = "v($data.x, $data.y, $data.z)"
-				}
-				else if (data instanceof Material) {
-					value = "m(\"${data.name()}\")"
-				}
-				else if (data instanceof ItemStack) {
-					value = "i(\"${data.type.name()}\", ${data.data?.data?:0}, ${data.amount})"
-				}
-				else if (data instanceof Player) {
-					value = "p(\"$data.name\")"
-				}
-                else if (data instanceof Area) {
-                    value = gArea(data)
-                }
-                else if (data instanceof Plot) {
-                    value = gPlot(data)
-                }
-                representScalar(new Tag('!g'), value)
-			}
-		] as Represent
-
-		representers[Location.class] = rep
-		representers[Vector.class] = rep
-		representers[Material.class] = rep
-		representers[ItemStack.class] = rep
-		representers[CraftPlayer.class] = rep
-		representers[Area.class] = rep
-		representers[Plot.class] = rep
-		representers[PublicPlot.class] = rep
+        representers.putAll([
+            (Location.class): locationRep,
+            (Vector.class): vectorRep,
+            (Material.class): materialRep,
+            (ItemStack.class): itemStackRep,
+            (CraftPlayer.class): playerRep,
+            (CraftWorld.class): worldRep
+        ])
 	}
 
-    static gLocation(data) { "l($data.x, $data.y, $data.z, $data.yaw, $data.pitch)" }
 
-    static gArea(data) { "area($data.minX, $data.maxX, $data.minZ, $data.maxZ)" }
+    def gScalar(String s) { representScalar(GroovyBukkitConstructor.G_TAG, s) }
 
-    static gPlot(data) {
-        "plot([name: \"$data.name\",${data.owner ? ' owner: "' + data.owner + '",' : ''} open: $data.open, " +
-                "${data.home ? 'home: ' + gLocation(data.home) + ',': ''} startDepth: $data.startDepth, " +
-                "visitors: [${data.visitors?.collect {"\"$it\"" }?.join(', ')}], " +
-                "areas: [${data.areas?.collect { gArea(it) }?.join(', ')}]"+
-                "])" }
+    def playerScalar(String s) { representScalar(GroovyBukkitConstructor.PLAYER_TAG, s) }
+
+    def worldScalar(String s) { representScalar(GroovyBukkitConstructor.WORLD_TAG, s) }
+
+
+    def playerRep = [representData: { data -> playerScalar(data.name) }] as Represent
+    def worldRep = [representData: { data -> worldScalar(data.name) }] as Represent
+
+    def locationRep = [representData: { data -> gScalar(gLocation(data)) }] as Represent
+    def vectorRep = [representData: { data -> gScalar(gVector(data)) }] as Represent
+    def materialRep = [representData: { data -> gScalar(gMaterial(data)) }] as Represent
+    def itemStackRep = [representData: { data -> gScalar(gItemStack(data)) }] as Represent
+
+
+    static gLocation = { Location data -> "l($data.x, $data.y, $data.z, $data.yaw, $data.pitch)" }
+
+    static gVector = { Vector data -> "v($data.x, $data.y, $data.z)" }
+
+    static gMaterial = { Material data -> "m(\"${data.name()}\")" }
+
+    static gItemStack = { ItemStack data -> "i(\"${data.type.name()}\", ${data.data?.data ?: 0}, ${data.amount})" }
+
 }

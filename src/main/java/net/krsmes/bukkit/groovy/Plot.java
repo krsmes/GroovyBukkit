@@ -170,10 +170,11 @@ public class Plot implements Serializable {
     }
 
     public void processEvent(PlayerInteractEvent e) {
-        if ((e.getAction() != Action.RIGHT_CLICK_BLOCK || !allowInteract(e.getPlayer(), e.getClickedBlock(), e.getItem())) && !allowed(e.getPlayer())) {
-
+//        if ((e.getAction() != Action.RIGHT_CLICK_BLOCK || !allowInteract(e.getPlayer(), e.getClickedBlock(), e.getItem())) && !allowed(e.getPlayer())) {
+        if (!allowInteract(e.getPlayer(), e.getClickedBlock(), e.getItem())) {
             e.setUseInteractedBlock(Event.Result.DENY);
         }
+//        System.out.println("Plot: " + e.getEventName() + " (" + e.getPlayer().getName() + "): item=" + e.getItem() + ", action=" + e.getAction() + ", clickedBlock=" + e.getClickedBlock() + " useBlock=" + e.useInteractedBlock());
     }
 
     public void processEvent(BlockDamageEvent e) {

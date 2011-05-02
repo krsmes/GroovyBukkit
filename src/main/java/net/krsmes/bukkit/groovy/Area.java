@@ -13,6 +13,8 @@ public class Area implements Serializable {
     int minZ;
     int maxZ;
 
+    public Area() {}  // serializable
+
     public Area(int x1, int x2, int z1, int z2) {
         minX = Math.min(x1, x2);
         maxX = Math.max(x1, x2);
@@ -27,6 +29,40 @@ public class Area implements Serializable {
     public Area(Block blk1, Block blk2) {
         this(blk1.getX(), blk2.getX(), blk1.getZ(), blk2.getZ());
     }
+
+
+    public int getMinX() {
+        return minX;
+    }
+
+    public void setMinX(int minX) {
+        this.minX = minX;
+    }
+
+    public int getMaxX() {
+        return maxX;
+    }
+
+    public void setMaxX(int maxX) {
+        this.maxX = maxX;
+    }
+
+    public int getMinZ() {
+        return minZ;
+    }
+
+    public void setMinZ(int minZ) {
+        this.minZ = minZ;
+    }
+
+    public int getMaxZ() {
+        return maxZ;
+    }
+
+    public void setMaxZ(int maxZ) {
+        this.maxZ = maxZ;
+    }
+
 
     public int getWidth() {
         return (maxX - minX) + 1;

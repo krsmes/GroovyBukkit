@@ -26,7 +26,7 @@ public class Events implements Runnable {
     }
 
 
-    public static synchronized Events enable(GroovyPlugin plugin, Map<String, Object> global) {
+    public static synchronized Events enable(GroovyPlugin plugin) {
         if (instance == null || instance.plugin != plugin) {
             instance = new Events(plugin);
         }
@@ -38,6 +38,14 @@ public class Events implements Runnable {
             instance.unschedule();
             instance = null;
         }
+    }
+
+    public synchronized void load(Map<String, Object> global) {
+
+    }
+
+    public synchronized void save(Map<String, Object> global) {
+
     }
 
 

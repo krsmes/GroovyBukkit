@@ -42,34 +42,58 @@
 		<dependency>
 			<groupId>org.codehaus.groovy</groupId>
 			<artifactId>groovy</artifactId>
-			<version>1.7.6</version>
+			<version>1.8.0</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.codehaus.gmaven.runtime</groupId>
-			<artifactId>gmaven-runtime-1.7</artifactId>
-			<version>1.3</version>
-		</dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.8.1</version>
+            <scope>test</scope>
+        </dependency>
 	</dependencies>
 
 	<build>
 		<plugins>
 			<!-- Compile Groovy code -->
 			<plugin>
-				<groupId>org.codehaus.groovy.maven</groupId>
+				<groupId>org.codehaus.gmaven</groupId>
 				<artifactId>gmaven-plugin</artifactId>
-				<version>1.0</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>generateStubs</goal>
-							<goal>compile</goal>
-							<goal>generateTestStubs</goal>
-							<goal>testCompile</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
+				<version>1.3</version>
+                <configuration>
+                    <providerSelection>1.7</providerSelection>
+                    <source/>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generateStubs</goal>
+                            <goal>compile</goal>
+                            <goal>generateTestStubs</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.codehaus.gmaven.runtime</groupId>
+                        <artifactId>gmaven-runtime-1.7</artifactId>
+                        <version>1.3</version>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>org.codehaus.groovy</groupId>
+                                <artifactId>groovy-all</artifactId>
+                            </exclusion>
+                        </exclusions>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.codehaus.groovy</groupId>
+                        <artifactId>groovy-all</artifactId>
+                        <version>1.8.0</version>
+                        <scope>compile</scope>
+                    </dependency>
+                </dependencies>
+            </plugin>
 
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

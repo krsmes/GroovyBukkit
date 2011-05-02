@@ -210,11 +210,11 @@ def addStickClick(runner, Block block) {
     },
 
     (Event.Type.PLAYER_INTERACT): { runner, PlayerInteractEvent e ->
-        //println "powertools(${runner.data.powertools ? 'ON' : 'OFF'}): $e.eventName ($e.player.name): item=$e.item, action=$e.action, clickedBlock=$e.clickedBlock, blockFace=$e.blockFace, useBlock=${e.useInteractedBlock()}"
+//        println "powertools(${runner.data.powertools ? 'ON' : 'OFF'}): $e.eventName ($e.player.name): item=$e.item, action=$e.action, clickedBlock=$e.clickedBlock, blockFace=$e.blockFace, useBlock=${e.useInteractedBlock()}"
 
         if (!runner.data.powertools ||
                 (e.clickedBlock &&
-                        e.clickedBlock.type in [Material.WOODEN_DOOR, Material.CHEST, Material.WORKBENCH]
+                    e.clickedBlock.type in [Material.WOODEN_DOOR, Material.CHEST, Material.WORKBENCH, Material.WALL_SIGN, Material.SIGN_POST]
                 )
             ) {
             return

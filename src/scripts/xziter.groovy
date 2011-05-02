@@ -1,3 +1,5 @@
+import org.bukkit.util.Vector
+
 def (v1, v2, callback) = args.toList()
 
 v1 = v(v1)
@@ -5,8 +7,8 @@ v2 = v(v2)
 def min = Vector.getMinimum(v1, v2)
 def max = Vector.getMaximum(v1, v2)
 
-(min.x..max.x).each { xx ->
-	(min.z..max.z).each { zz ->
+(min.blockX..max.blockX).each { xx ->
+	(min.blockZ..max.blockZ).each { zz ->
 		callback(xx,zz)
 	}
 }

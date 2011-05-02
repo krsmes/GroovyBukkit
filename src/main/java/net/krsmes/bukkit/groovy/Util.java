@@ -4,6 +4,8 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
 import java.util.Arrays;
@@ -67,4 +69,25 @@ public class Util {
         return out.toString();
     }
 
+
+    public static void sendMessage(JavaPlugin plugin, final Player player, final String message) {
+        plugin.getServer().getScheduler().scheduleAsyncDelayedTask(plugin,
+            new Runnable() {
+                public void run() {
+                    player.sendMessage(message);
+                }
+            }
+        );
+    }
+
+
+    public static void teleport(GroovyPlugin plugin, final Player player, final Location dest) {
+        plugin.getServer().getScheduler().scheduleAsyncDelayedTask(plugin,
+                new Runnable() {
+                    public void run() {
+                        player.teleport(dest);
+                    }
+                }
+        );
+    }
 }

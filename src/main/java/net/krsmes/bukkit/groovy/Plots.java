@@ -1,5 +1,6 @@
 package net.krsmes.bukkit.groovy;
 
+import net.krsmes.bukkit.groovy.events.PlotChangeEvent;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -32,7 +33,8 @@ public class Plots implements EventExecutor, Listener {
     public static Plots instance;
 
     GroovyPlugin plugin;
-    Map<String, Plot> data;
+
+    Map<String, Plot> plots;
     Plot publicPlot;
     boolean plotProtection;
 
@@ -44,35 +46,41 @@ public class Plots implements EventExecutor, Listener {
     }
 
 
-    public static synchronized Plots enable(GroovyPlugin plugin, Map<String, Object> global) {
-        Map<String, Plot> data = (Map) global.get(ATTR_DATA);
-        if (data == null) {
-            data = new HashMap<String, Plot>();
-            global.put(ATTR_DATA, data);
-        }
-        Plot publicPlot = (Plot) global.get(ATTR_PUBLIC);
-        if (publicPlot == null) {
-            publicPlot = new PublicPlot();
-            global.put(ATTR_PUBLIC, publicPlot);
-        }
-        boolean plotProtection = (Boolean) global.get(ATTR_PLOT_PROTECTION);
-
+    public static synchronized Plots enable(GroovyPlugin plugin) {
         if (instance == null || instance.plugin != plugin) {
             instance = new Plots(plugin);
-            instance.register();
-            global.put(ATTR_PLOTS, instance);
         }
-        log.info("Plots: setting data: "+ data.size() + " plots");
-        instance.data = data;
-        instance.publicPlot = publicPlot;
-        instance.plotProtection = plotProtection;
         return instance;
     }
 
 
     public static synchronized void disable() {
-
     }
+
+
+    @SuppressWarnings({"unchecked"})
+    public synchronized void load(Map<String, Object> data) {
+        plots = (Map) data.remove(ATTR_DATA);
+        if (plots == null) {
+            plots = new HashMap<String, Plot>();
+        }
+        publicPlot = (Plot) data.remove(ATTR_PUBLIC);
+        if (publicPlot == null) {
+            publicPlot = new PublicPlot();
+        }
+        Object plotProtectionObj = data.remove(ATTR_PLOT_PROTECTION);
+        plotProtection = (plotProtectionObj != null && ((Boolean) plotProtectionObj));
+
+        log.info("Plots: load " + plots.size() + " plots");
+    }
+
+
+    public synchronized void save(Map<String, Object> data) {
+        data.put(ATTR_DATA, plots);
+        data.put(ATTR_PUBLIC, publicPlot);
+        data.put(ATTR_PLOT_PROTECTION, plotProtection);
+    }
+
 
 
 //
@@ -83,29 +91,13 @@ public class Plots implements EventExecutor, Listener {
         if (plugin.enabled) {
             Player player;
             Map<String, Object> playerData;
-            Plot plot;
             switch (event.getType()) {
                 case PLAYER_MOVE:
                 case PLAYER_TELEPORT:
                     PlayerMoveEvent pme = (PlayerMoveEvent) event;
                     player = pme.getPlayer();
                     playerData = plugin.getData(player);
-                    Object plotShow = playerData.get(ATTR_PLOT_SHOW);
-                    if (plotShow instanceof Boolean && (Boolean)plotShow) {
-                        Location to = pme.getTo();
-                        int toX = to.getBlockX();
-                        int toZ = to.getBlockZ();
-                        Object current = playerData.get(ATTR_PLOT);
-                        if ((current instanceof Plot) && ((Plot) current).contains(toX, toZ)) {
-                        }
-                        else {
-                            plot = findPlot(toX, toZ);
-                            if (plot != current) {
-                                playerData.put(ATTR_PLOT, plot);
-                                player.sendMessage(ChatColor.DARK_AQUA + "Now in plot " + plot);
-                            }
-                        }
-                    }
+                    processEvent(playerData, pme);
                     break;
 
                 case BLOCK_DAMAGE:
@@ -113,7 +105,7 @@ public class Plots implements EventExecutor, Listener {
                         BlockDamageEvent bde = (BlockDamageEvent) event;
                         player = bde.getPlayer();
                         playerData = plugin.getData(player);
-                        Plot current = (Plot) playerData.get(ATTR_PLOT);
+                        Plot current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
                         processEvent(current, bde);
                     }
                     break;
@@ -123,7 +115,7 @@ public class Plots implements EventExecutor, Listener {
                         PlayerInteractEvent pie = (PlayerInteractEvent) event;
                         player = pie.getPlayer();
                         playerData = plugin.getData(player);
-                        Plot current = (Plot) playerData.get(ATTR_PLOT);
+                        Plot current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
                         processEvent(current, pie);
                     }
                     break;
@@ -151,13 +143,13 @@ public class Plots implements EventExecutor, Listener {
 
     public Plot addPlot(Plot plot) {
         log.info("Plots: adding " + plot.getName());
-        return data.put(plot.getName(), plot);
+        return plots.put(plot.getName(), plot);
     }
 
 
     public Plot createPlot(String name, Area area, World world) {
         Plot result = null;
-        if (!data.containsKey(name) && !name.equalsIgnoreCase(PublicPlot.PUBLIC_PLOT_NAME)) {
+        if (!plots.containsKey(name) && !name.equalsIgnoreCase(PublicPlot.PUBLIC_PLOT_NAME)) {
             result = new Plot(name, area);
             addPlot(result);
             int x = area.getCenterX();
@@ -170,12 +162,12 @@ public class Plots implements EventExecutor, Listener {
 
 
     public void removePlot(String name) {
-        data.remove(name);
+        plots.remove(name);
     }
 
 
     public Plot findPlot(int x, int z) {
-        Plot result = findPlot(data.values(), x, z);
+        Plot result = findPlot(plots.values(), x, z);
         if (result == null) {
             result = publicPlot;
         }
@@ -203,14 +195,14 @@ public class Plots implements EventExecutor, Listener {
 
 
     public Plot findPlot(String name) {
-        return data.get(name);
+        return plots.get(name);
     }
 
 
     public List<Plot> findOwnedPlots(String owner) {
         List<Plot> result = new ArrayList<Plot>();
         if (owner != null) {
-            for (Plot plot : data.values()) {
+            for (Plot plot : plots.values()) {
                 if (owner.equals(plot.getOwner())) {
                     result.add(plot);
                 }
@@ -228,10 +220,10 @@ public class Plots implements EventExecutor, Listener {
     protected void register() {
         log.info("Plots: registering");
         PluginManager mgr = plugin.getServer().getPluginManager();
-        mgr.registerEvent(Event.Type.PLAYER_MOVE, this, this, Event.Priority.High, plugin);
-        mgr.registerEvent(Event.Type.PLAYER_TELEPORT, this, this, Event.Priority.High, plugin);
-        mgr.registerEvent(Event.Type.BLOCK_DAMAGE, this, this, Event.Priority.High, plugin);
-        mgr.registerEvent(Event.Type.PLAYER_INTERACT, this, this, Event.Priority.High, plugin);
+        mgr.registerEvent(Event.Type.PLAYER_MOVE, this, this, Event.Priority.Low, plugin);
+        mgr.registerEvent(Event.Type.PLAYER_TELEPORT, this, this, Event.Priority.Low, plugin);
+        mgr.registerEvent(Event.Type.BLOCK_DAMAGE, this, this, Event.Priority.Lowest, plugin);
+        mgr.registerEvent(Event.Type.PLAYER_INTERACT, this, this, Event.Priority.Lowest, plugin);
     }
 
 
@@ -246,6 +238,50 @@ public class Plots implements EventExecutor, Listener {
     protected void processEvent(Plot firstCheck, BlockDamageEvent e) {
         Block block = e.getBlock();
         findPlot(firstCheck, block.getX(), block.getZ()).processEvent(e);
+    }
+
+
+    protected void processEvent(Map<String, Object> playerData, PlayerMoveEvent e) {
+        Event.Type type = e.getType();
+        Location to = e.getTo();
+        int toX = to.getBlockX();
+        int toZ = to.getBlockZ();
+        Location from = e.getFrom();
+        int fromX = from.getBlockX();
+        int fromZ = from.getBlockZ();
+        // see if player moved off of block horizontally
+        if (toX != fromX || toZ != fromZ || type == Event.Type.PLAYER_TELEPORT) {
+            Plot current = (Plot) playerData.get(ATTR_PLOT);
+            // see if new location is in the same plot (faster than doing a full plot scan)
+            if ((current != null) && current.contains(toX, toZ)) {
+            } else {
+                // where are we now?
+                Plot plot = findPlot(toX, toZ);
+                if (plot != current) {
+                    Player player = e.getPlayer();
+                    if (plotChange(player, current, plot)) {
+                        playerData.put(ATTR_PLOT, plot);
+
+                        Object plotShow = playerData.get(ATTR_PLOT_SHOW);
+                        if (plotShow instanceof Boolean && (Boolean) plotShow) {
+                            Util.sendMessage(plugin, player, ChatColor.DARK_AQUA + "Now in plot " + plot);
+                        }
+                    }
+                    else {
+                        e.setCancelled(true);
+                        Util.teleport(plugin, player, from);
+                    }
+                }
+            }
+        }
+    }
+
+
+    protected boolean plotChange(Player p, Plot from, Plot to) {
+        PluginManager mgr = plugin.getServer().getPluginManager();
+        PlotChangeEvent pce = new PlotChangeEvent(p, from, to);
+        mgr.callEvent(pce);
+        return !pce.isCancelled();
     }
 
 

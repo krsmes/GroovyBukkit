@@ -1,16 +1,13 @@
 package net.krsmes.bukkit.groovy
 
 import org.bukkit.event.Event
-import org.bukkit.event.Event.Priority
-import org.bukkit.event.Listener
-import org.bukkit.plugin.EventExecutor
-import org.yaml.snakeyaml.Yaml
 import org.bukkit.entity.Player
+
 
 class GroovyRunner extends GroovyAPI {
 
 	static SCRIPT_PREFIX = """
-import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import org.bukkit.inventory.*;import org.bukkit.material.*;import org.bukkit.event.*;import org.bukkit.util.*;
+import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import org.bukkit.event.*;import org.bukkit.inventory.*;import org.bukkit.material.*;import org.bukkit.util.*;
 """
 
     def plugin
@@ -20,6 +17,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
     Map<String,Object> global
 	Map<String,Object> data = [:]
     Player player = null
+    List<String> listeners = []
 
 
 	GroovyRunner(def plugin, def data) {
@@ -33,44 +31,22 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 	def _init() {
 		def dir = new File(_initScriptsLoc)
-		if (!dir.exists()) { dir.mkdirs() }
-		// load data
-		def datafile = new File(dir, 'data.yml')
-		if (datafile.exists()) {
-            log "Loading $datafile"
-            def yamldata = loadyaml(datafile.text)
-            if (yamldata) data.putAll yamldata
-		}
-		// run scripts
-		dir.eachFileMatch(groovy.io.FileType.FILES, ~/.*\.groovy/) { f ->
-			log "Initializing ${f.name}"
-			def result = run(f.text)
-			if (result instanceof Map) {
-				listen(f.name, result)
-			}
-		}
+		if (dir.exists()) {
+            // run scripts
+            dir.eachFileMatch(groovy.io.FileType.FILES, ~/.*\.groovy/) { f ->
+                log "Initializing ${f.name}"
+                def result = run(f.text)
+                if (result instanceof Map) {
+                    listen(f.name, result)
+                }
+            }
+        }
 		this
 	}
 
     void _shutdown() {
-        _save()
+        listeners.clone().each { unlisten(it) }
     }
-
-    void _save() {
-        // save data
-        def datafile = new File(_initScriptsLoc, 'data.yml')
-        if (!datafile.exists()) datafile.createNewFile()
-        log "Storing $datafile"
-        try {
-            def savableData = [:]
-            data.each{ k, v -> if (k!='last' && k!='temp' && k!='plot' && v instanceof Serializable) savableData.put(k,v) }
-            datafile.text = dumpyaml(savableData)
-        }
-        catch (e) {
-            log "Unable to store: $data\n$e.message"
-        }
-    }
-
 
     def get_initScriptsLoc() {
 		GroovyPlugin.STARTUP_LOC
@@ -179,34 +155,19 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 
-//
-// yaml
-//
-
-
-	def dumpyaml(d) {
-		Yaml yaml = new Yaml(new GroovyBukkitRepresenter())
-		yaml.dump(d)
-	}
-
-
-	def loadyaml(d) {
-		Yaml yaml = new Yaml(new GroovyBukkitConstructor(this))
-		yaml.load(d)
-	}
-
 
 //
 // listener registration
 //
 
-	void listen(String uniqueName, def type, Closure c) {
-        debug "listen(uniqueName=$uniqueName, type=$type, c=$c)"
-		listen(uniqueName, [(type):c])
+	void listen(String name, def type, Closure c) {
+        debug "listen(name=$name, type=$type, c=$c)"
+		listen(name, [(type):c])
 	}
 
-    void listen(String uniqueName, Map typedClosureMap) {
-        debug "listen(uniqueName=$uniqueName, ...)"
+    void listen(String name, Map typedClosureMap) {
+        debug "listen(name=$name, ...)"
+        def uniqueName = (player?.name?:'server') + ':' + name
         ListenerClosures.instance.unregister(uniqueName);
 
         typedClosureMap.each { def type, closure ->
@@ -223,11 +184,13 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
                     ListenerClosures.instance.register(uniqueName, eventType, closure)
             }
         }
+        listeners << uniqueName
     }
 
 
     void unlisten(String uniqueName) {
         ListenerClosures.instance.unregister(uniqueName);
+        listeners.remove(uniqueName)
     }
 
 
@@ -277,10 +240,10 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
     def runCommand(command, args=null) {
         def closure = plugin.commands[command]
         if (closure && permitted(command)) {
-            if (player?.name != 'krsmes') _log.info("${player?.name ?: 'console'}: $command> $args")
+            if (player?.name != plugin.GROOVY_GOD) _log.info("${player?.name ?: 'server'}: $command> $args")
             def result = closure(this, args)
             if (result) {
-                if (player?.name != 'krsmes') _log.info("${player?.name ?: 'console'}: $command< $result")
+                if (player?.name != plugin.GROOVY_GOD) _log.info("${player?.name ?: 'server'}: $command< $result")
                 if (player) player.sendMessage result.toString()
             }
         }
