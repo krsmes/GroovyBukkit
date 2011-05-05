@@ -282,9 +282,11 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
     protected Map<String, Object> savableData(Map<String, Object> data) {
         Map<String, Object> result = new HashMap<String, Object>();
-        for (Map.Entry<String, Object> e : data.entrySet()) {
-            if (!UNSAVABLE.contains(e.getKey())) {
-                result.put(e.getKey(), e.getValue());
+        if (data != null) {
+            for (Map.Entry<String, Object> e : data.entrySet()) {
+                if (!UNSAVABLE.contains(e.getKey())) {
+                    result.put(e.getKey(), e.getValue());
+                }
             }
         }
         return result;

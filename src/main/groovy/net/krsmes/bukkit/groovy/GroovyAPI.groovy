@@ -243,6 +243,12 @@ class GroovyAPI {
         new Area(loc1, loc2)
     }
 
+    // to be deleted
+    /** @deprecated */
+    static Plot plot(Map attrs) {
+        (attrs.name == PublicPlot.PUBLIC_PLOT_NAME) ? new PublicPlot(attrs) : new Plot(attrs)
+    }
+
     static Plots plots() {
         Plots.instance
     }

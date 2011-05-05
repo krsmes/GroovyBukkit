@@ -28,6 +28,7 @@ listen "debug", [
 	(Event.Type.PLAYER_ANIMATION):      { PlayerAnimationEvent it   -> log "$it.eventName ($it.player.name): $it.animationType" },
 	(Event.Type.PLAYER_TOGGLE_SNEAK):   { PlayerToggleSneakEvent it -> log "$it.eventName ($it.player.name)" },
 	(Event.Type.PLAYER_INTERACT):       { PlayerInteractEvent it    -> log "$it.eventName ($it.player.name): item=$it.item, action=$it.action, clickedBlock=${blkstr(it.clickedBlock)}, blockFace=$it.blockFace" },
+	(Event.Type.PLAYER_INTERACT_ENTITY): { PlayerInteractEntityEvent it -> log "$it.eventName ($it.player.name): rightClicked=${entstr(it.rightClicked)}" },
 	(Event.Type.PLAYER_EGG_THROW):      { PlayerEggThrowEvent it    -> log "$it.eventName ($it.player.name): $it.numHatches $it.hatchType $it.hatching " },
 	(Event.Type.PLAYER_TELEPORT):       { PlayerTeleportEvent it    -> log "$it.eventName ($it.player.name): ${locstr(it.from)} to ${locstr(it.to)}" },
 	(Event.Type.PLAYER_ITEM_HELD):      { PlayerItemHeldEvent it    -> log "$it.eventName ($it.player.name): now $it.newSlot (${itmstr(it.player.inventory.getItem(it.newSlot))}) was $it.previousSlot (${itmstr(it.player.inventory.getItem(it.previousSlot))})" },
