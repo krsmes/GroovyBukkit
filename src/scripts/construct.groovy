@@ -1,5 +1,7 @@
 import org.bukkit.material.Directional
+import org.bukkit.Material
 
+me.sendMessage("krsmes's version")
 def materials = [
         ' ': 'air',
         '*': 'snow',
@@ -13,43 +15,61 @@ def materials = [
         '=': 'double step',
         '!': 'mob spawner',
 
+        'b': 'brick',
+        'B': 'bed block',
         'c': 'cobblestone',
         'C': 'cobblestone stairs',
         'd': 'dirt',
+        'f': 'fire',
         'g': 'grass',
         'G': 'glass',
         'i': 'ice',
+        'j': 'jack o lantern',
         'l': 'log',
         'L': 'leaves',
         'm': 'mossy cobblestone',
         'n': 'sand',
         'N': 'sandstone',
         'o': 'obsidian',
+        'p': 'pumpkin',
         's': 'stone',
         'S': 'soil',
         'T': 'tnt',
         'w': 'wood',
         'W': 'wood stairs',
         'x': 'bedrock',
-        'y': 'clay'
+        'y': 'clay',
+        'z': 'soul sand',
+
+        '[': 'wooden door',
+        ']': 'iron door block',
+        '{': 'chest',
+        '}': 'workbench'
 
 ]
 
 def plan = load(args[0])
 
+def determineMaterial = {
+    def result = materials[it]
+    result ? m(result) : null
+}
+
 def determineMaterialData = { mat, dataStr ->
 	if (!dataStr || dataStr == ' ') return 0
-	if (dataStr in ['0'..'9','a'..'f','A'..'F']) return Integer.valueOf(dataStr, 16)
+	if (dataStr.matches('[a-fA-F0-9]')) return Integer.valueOf(dataStr, 16)
 	if (dataStr in ['^','v','<','>']) {
 		def matData = mat.getNewData((byte)0)
 		if (matData instanceof Directional) {
-			matData.facingDirection = dataStr == 'v' ? fBck : dataStr == '<' ? fLft : dataStr == '>' ? fRgt : fFwd
+			matData.facingDirection = dataStr == 'v' ? fBck : dataStr == '<' ? fLft : dataStr == '>' ? fRgt : fac
 			return matData.data
 		} 
 	}
 	0
 }
 
+def postProcess = []
+def postProcessMaterials = [Material.TORCH, Material.REDSTONE_TORCH_OFF, Material.REDSTONE_TORCH_ON]
 def layers = plan.split('--')
 def layernum = 0
 
@@ -70,19 +90,30 @@ layers.each { layer ->
 
                     (0..cols-1).each { colnum ->
                     	def idx = colnum * 2
-                        def mat = materials[row[idx]]
+                        def mat = determineMaterial(row[idx])
                         if (mat) {
-                        	mat = m(mat)
                         	def matdata = 0
                         	if (rowlen > idx+1) {
                         		matdata = determineMaterialData(mat, row[idx+1])	
-                        	}	
-                        	cur.setTypeIdAndData(mat.id, (byte)matdata, false)
+                        	}
+                            if (mat in postProcessMaterials) {
+                                postProcess << [cur, mat, matdata]
+                            }
+                        	cur.setTypeIdAndData(mat.id, (byte) matdata, false)
                         }
                         cur += fRgt
                     }
                 }
             }
         }
+    }
+}
+
+postProcess.each { blkMatData ->
+    println "postProcess $blkMatData"
+    blkMatData[0].state.with {
+        type = blkMatData[1]
+        if (blkMatData[2]) data = type.getNewData((byte) blkMatData[2])
+        update()
     }
 }

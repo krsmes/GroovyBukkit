@@ -267,11 +267,11 @@ class GroovyAPI {
 		else {
 			def fullName = scriptLoc + name
 			try {
-				URL u = name.toURL()
+				URL u = fullName.toURL()
 				return u.text
 			}
 			catch (e) {
-				if (!name.startsWith('http:')) {
+				if (!fullName.startsWith('http:')) {
 					file = new File(fullName)
 				}
 			}

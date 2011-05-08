@@ -70,6 +70,10 @@ command 'ptools', { runner, args ->
 }
 
 
+command 'build', { runner, args ->
+    construct(args[0])
+}
+
 
 def killBlock(Block block) {
     //println "killBlock(): $block"

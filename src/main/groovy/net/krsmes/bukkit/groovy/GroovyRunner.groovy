@@ -238,9 +238,11 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
     }
 
     def runCommand(command, args=null) {
-        def closure = plugin.commands[command]
+        def closure = plugin.commands[command].clone()
         if (closure && permitted(command)) {
             if (player?.name != plugin.GROOVY_GOD) _log.info("${player?.name ?: 'server'}: $command> $args")
+            closure.owner = this
+            closure.delegate = this
             def result = closure(this, args)
             if (result) {
                 if (player?.name != plugin.GROOVY_GOD) _log.info("${player?.name ?: 'server'}: $command< $result")
