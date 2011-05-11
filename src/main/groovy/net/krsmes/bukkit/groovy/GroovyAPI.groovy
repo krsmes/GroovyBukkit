@@ -94,7 +94,9 @@ class GroovyAPI {
 
 	Player p(def name) {
 		def playerName = name.toString()
-		server.onlinePlayers.find {it.name == playerName}
+		def result = server.onlinePlayers.find {it.name == playerName}
+        if (!result) result = server.onlinePlayers.find {it.name.startsWith(playerName)}
+        (Player) result
 	}
 
 

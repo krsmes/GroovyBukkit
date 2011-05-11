@@ -10,6 +10,7 @@ import org.bukkit.event.weather.*
 
 
 def locstr = { it?String.format('Loc[xyz=%.2f:%.2f:%.2f]', it.x, it.y, it.z):'Loc[null] ' }
+def vecstr = { it?String.format('Vec[xyz=%.2f:%.2f:%.2f]', it.x, it.y, it.z):'Vec[null] ' }
 def blkstr = { it?"Blk[xyz=$it.x:$it.y:$it.z $it.type:$it.data($it.typeId)]":'Blk[null]' }
 def entstr = { it?"Ent[$it(${locstr(it.location)})]":'Ent[null]' }
 def vehstr = { it?"Veh[$it(${locstr(it.location)})]":'Veh[null]' }
@@ -43,7 +44,8 @@ listen "debug", [
     (Event.Type.BLOCK_DAMAGE):          { BlockDamageEvent it       -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, instaBreak=$it.instaBreak, itemInHand=$it.itemInHand" },
 	(Event.Type.BLOCK_CANBUILD):        { BlockCanBuildEvent it     -> log "$it.eventName ${blkstr(it.block)}: $it.material, buildable=$it.buildable" },
 	(Event.Type.BLOCK_IGNITE):          { BlockIgniteEvent it       -> log "$it.eventName ${blkstr(it.block)}: by $it.player?.name, cause=$it.cause" },
-	(Event.Type.BLOCK_PLACE):           { BlockPlaceEvent it        -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, blockAgainst=${blkstr(it.blockAgainst)}, itemInHand=$it.itemInHand, canBuild=${it.canBuild()})" },
+	(Event.Type.BLOCK_PLACE):           { BlockPlaceEvent it        -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, blockAgainst=${blkstr(it.blockAgainst)}, itemInHand=$it.itemInHand, canBuild=${it.canBuild()}" },
+	(Event.Type.BLOCK_DISPENSE):        { BlockDispenseEvent it     -> log "$it.eventName ${blkstr(it.block)}: item=${itmstr(it.item)}, velocity=${vecstr(it.velocity)}" },
 	(Event.Type.BLOCK_BURN):            { BlockBurnEvent it         -> log "$it.eventName ${blkstr(it.block)}" },
 	(Event.Type.LEAVES_DECAY):          { LeavesDecayEvent it       -> log "$it.eventName ${blkstr(it.block)}" },
 	(Event.Type.SIGN_CHANGE):           { SignChangeEvent it        -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, lines=${it.lines.join(',')}" },

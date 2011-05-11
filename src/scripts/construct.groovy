@@ -1,51 +1,90 @@
-import org.bukkit.material.Directional
+import org.bukkit.block.*
+import org.bukkit.material.*
 import org.bukkit.Material
 
-me.sendMessage("krsmes's version")
 def materials = [
         ' ': 'air',
         '*': 'snow',
-        '&': 'web',
-        '@': 'wool',
+
         '#': 'ladder',
-        '/': 'torch',
         '|': 'fence',
+
+        '/': 'torch',
+        '\\': 'redstone torch off',
         '+': 'redstone wire',
+
         '-': 'step',
         '=': 'double step',
         '!': 'mob spawner',
 
+        '[': 'wooden door',
+        ']': 'iron door block',
+        '{': 'chest',
+        '}': 'workbench',
+        '(': 'dispenser',
+        ')': 'furnace',
+
+        '$': 'yellow flower',
+        '%': 'red rose',
+        ':': 'brown mushroom',
+        ';': 'red mushroom',
+        '"': 'crops',
+
+        '@': 'wool',
+        '&': 'web',
+
+        'a': 'lava',
+        'A': 'stationary lava',
         'b': 'brick',
         'B': 'bed block',
         'c': 'cobblestone',
         'C': 'cobblestone stairs',
         'd': 'dirt',
-        'f': 'fire',
+        'D': 'diode block off',
+        'e': 'water',
+        'E': 'stationary water',
+        'f': 'soil',
+        'F': 'Fire',
         'g': 'grass',
         'G': 'glass',
-        'i': 'ice',
+        'h': 'stone button',
+        'H': 'lever',
+        'i': 'snow block',
+        'I': 'ice',
         'j': 'jack o lantern',
-        'l': 'log',
-        'L': 'leaves',
+        'J': 'jukebox',
+        'k': 'bookshelf',
+        'K': 'cake block',
+        'l': 'leaves',
+        'L': 'log',
         'm': 'mossy cobblestone',
+        'M': 'sugar cane block',
         'n': 'sand',
         'N': 'sandstone',
         'o': 'obsidian',
+        'O': 'note block',
         'p': 'pumpkin',
+        'P': 'portal',
+        'q': 'lapis ore',
+        'Q': 'bedrock',
+        'r': 'redstone ore',
+        'R': 'netherrack',
         's': 'stone',
         'S': 'soil',
+        't': 'sapling',
         'T': 'tnt',
+        'u': 'stone plate',
+        'U': 'wood plate',
+        'v': 'gravel',
+        'V': 'gold ore',
         'w': 'wood',
         'W': 'wood stairs',
-        'x': 'bedrock',
+        'x': 'coal ore',
+        'X': 'iron ore',
         'y': 'clay',
+        'Y': 'diamond ore',
         'z': 'soul sand',
-
-        '[': 'wooden door',
-        ']': 'iron door block',
-        '{': 'chest',
-        '}': 'workbench'
-
+        'Z': 'glowstone'
 ]
 
 def plan = load(args[0])
@@ -63,8 +102,16 @@ def determineMaterialData = { mat, dataStr ->
 		if (matData instanceof Directional) {
 			matData.facingDirection = dataStr == 'v' ? fBck : dataStr == '<' ? fLft : dataStr == '>' ? fRgt : fac
 			return matData.data
-		} 
-	}
+		}
+        else if (matData instanceof Door) {
+            def corner= 0
+            if (fac == BlockFace.WEST) corner = dataStr == 'v' ? 0 : dataStr == '<' ? 1 : dataStr == '>' ? 3 : 2
+            else if (fac == BlockFace.EAST) corner = dataStr == 'v' ? 2 : dataStr == '<' ? 3 : dataStr == '>' ? 1 : 0
+            else if (fac == BlockFace.NORTH) corner = dataStr == 'v' ? 1 : dataStr == '<' ? 0 : dataStr == '>' ? 2 : 3
+            else if (fac == BlockFace.SOUTH) corner = dataStr == 'v' ? 3 : dataStr == '<' ? 2 : dataStr == '>' ? 0 : 1
+            return corner
+        }
+    }
 	0
 }
 
@@ -98,6 +145,9 @@ layers.each { layer ->
                         	}
                             if (mat in postProcessMaterials) {
                                 postProcess << [cur, mat, matdata]
+                            }
+                            if ((mat == Material.WOODEN_DOOR || mat == Material.IRON_DOOR_BLOCK) && ((cur-1).type == mat)) {
+                                matdata = matdata | 0x8
                             }
                         	cur.setTypeIdAndData(mat.id, (byte) matdata, false)
                         }

@@ -4,14 +4,14 @@
   w       w
   w       w
   w       w
-  w w   w w
+  w w [^w w
 --
   w G w G w
   w       w
   G       G
   G       G
   w /^  /^w
-  w w   w w
+  w w [^w w
 --
   w w w w w
   w       w
