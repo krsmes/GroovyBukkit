@@ -1,6 +1,6 @@
-name: GroovyPlugin
+name: GroovyBukkit
 main: net.krsmes.bukkit.groovy.GroovyPlugin
-version: 0.5
+version: 0.6
 commands:
   g:
     description: Evaluate groovy code

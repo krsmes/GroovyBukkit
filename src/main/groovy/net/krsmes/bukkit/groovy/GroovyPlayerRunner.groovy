@@ -15,8 +15,8 @@ class GroovyPlayerRunner extends GroovyRunner {
 	}
 
 
-	def get_initScriptsLoc() {
-        GroovyPlugin.PLAYER_LOC + player.name + '/'
+	def getStartupFolder() {
+        new File(plugin.dataFolder, GroovyPlugin.PLAYER_LOC + player.name + '/')
 	}
 
 

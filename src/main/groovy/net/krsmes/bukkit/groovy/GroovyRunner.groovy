@@ -10,7 +10,7 @@ class GroovyRunner extends GroovyAPI {
 import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import org.bukkit.event.*;import org.bukkit.inventory.*;import org.bukkit.material.*;import org.bukkit.util.*;
 """
 
-    def plugin
+    GroovyPlugin plugin
     GroovyShell shell
     Map vars
 
@@ -30,7 +30,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 
 
 	def _init() {
-		def dir = new File(_initScriptsLoc)
+		def dir = startupFolder
 		if (dir.exists()) {
             // run scripts
             dir.eachFileMatch(groovy.io.FileType.FILES, ~/.*\.groovy/) { f ->
@@ -48,9 +48,11 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
         listeners.clone().each { unlisten(it) }
     }
 
-    def get_initScriptsLoc() {
-		GroovyPlugin.STARTUP_LOC
-	}
+    def getStartupFolder() {
+        def result = new File(plugin.dataFolder, GroovyPlugin.STARTUP_LOC)
+        result.mkdirs()
+        result
+    }
 
 
 	def runScript(def script) {
@@ -58,7 +60,30 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 
-	def runFile = { scriptName, args ->
+    def load(name) {
+        def file = null
+        if (name instanceof File) {
+            file = name
+        }
+        else {
+            def fullName = scriptLoc + name
+            try {
+                URL u = fullName.toURL()
+                return u.text
+            }
+            catch (e) {
+                if (!fullName.startsWith('http:')) {
+                    file = new File(fullName)
+                }
+            }
+        }
+        if (file?.exists()) {
+            return file.text
+        }
+    }
+
+
+    def runFile = { scriptName, args ->
 		def script = load(scriptName + GroovyPlugin.SCRIPT_SUFFIX)
 		if (script) {
 			run script, args

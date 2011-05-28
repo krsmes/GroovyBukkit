@@ -261,29 +261,6 @@ class GroovyAPI {
 //
 
 
-	String load(name) {
-		def file = null
-		if (name instanceof File) {
-			file = name
-		}
-		else {
-			def fullName = scriptLoc + name
-			try {
-				URL u = fullName.toURL()
-				return u.text
-			}
-			catch (e) {
-				if (!fullName.startsWith('http:')) {
-					file = new File(fullName)
-				}
-			}
-		}
-		if (file?.exists()) {
-			return file.text
-		}
-	}
-
-
 	static def stringToType(s) {
 		s.toString().toUpperCase().replaceAll(/[\s\.\-]/, '_')
 	}

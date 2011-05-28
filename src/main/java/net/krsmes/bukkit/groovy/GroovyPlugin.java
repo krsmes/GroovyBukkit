@@ -322,13 +322,14 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
 
     protected void onSave() {
+        try { getConfiguration().save(); } catch (Exception e) { LOG.warning("GroovyBukkit onSave() config failed: " + e.getMessage()); }
         Map<String, Object> data = savableData(global);
         ListenerClosures.instance.save(data);
         Events.instance.save(data);
         Plots.instance.save(data);
-        saveData(data);
+        try { saveData(data); } catch (Exception e) { LOG.warning("GroovyBukkit onSave() global failed: " + e.getMessage()); }
         for (GroovyRunner r : playerRunners.values()) {
-            saveData(r);
+            try { saveData(r);  } catch (Exception e) { LOG.warning("GroovyBukkit onSave() " + r.getPlayer() + " failed: " + e.getMessage()); }
         }
     }
 
