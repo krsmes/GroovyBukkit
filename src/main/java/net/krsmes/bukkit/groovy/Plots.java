@@ -26,7 +26,6 @@ public class Plots implements EventExecutor, Listener {
 
     public static String ATTR_PLOTS = "plots";
     public static String ATTR_PLOT = "plot";
-    public static String ATTR_PLOT_SHOW = "plotShow";
     public static String ATTR_DATA = "plotsData";
     public static String ATTR_PUBLIC = "plotsPublic";
     public static String ATTR_PLOT_PROTECTION = "plotProtection";
@@ -88,9 +87,10 @@ public class Plots implements EventExecutor, Listener {
 //
 
     public void execute(Listener listener, Event event) {
-        if (plugin.enabled) {
+        if (plugin.enabled && plotProtection) {
             Player player;
             Map<String, Object> playerData;
+            Plot current;
             switch (event.getType()) {
                 case PLAYER_MOVE:
                 case PLAYER_TELEPORT:
@@ -101,23 +101,19 @@ public class Plots implements EventExecutor, Listener {
                     break;
 
                 case BLOCK_DAMAGE:
-                    if (plotProtection) {
-                        BlockDamageEvent bde = (BlockDamageEvent) event;
-                        player = bde.getPlayer();
-                        playerData = plugin.getData(player);
-                        Plot current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
-                        processEvent(current, bde);
-                    }
+                    BlockDamageEvent bde = (BlockDamageEvent) event;
+                    player = bde.getPlayer();
+                    playerData = plugin.getData(player);
+                    current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
+                    processEvent(current, bde);
                     break;
 
                 case PLAYER_INTERACT:
-                    if (plotProtection) {
-                        PlayerInteractEvent pie = (PlayerInteractEvent) event;
-                        player = pie.getPlayer();
-                        playerData = plugin.getData(player);
-                        Plot current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
-                        processEvent(current, pie);
-                    }
+                    PlayerInteractEvent pie = (PlayerInteractEvent) event;
+                    player = pie.getPlayer();
+                    playerData = plugin.getData(player);
+                    current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
+                    processEvent(current, pie);
                     break;
             }
         }
@@ -242,34 +238,32 @@ public class Plots implements EventExecutor, Listener {
 
 
     protected void processEvent(Map<String, Object> playerData, PlayerMoveEvent e) {
-        Event.Type type = e.getType();
-        Location to = e.getTo();
-        int toX = to.getBlockX();
-        int toZ = to.getBlockZ();
-        Location from = e.getFrom();
-        int fromX = from.getBlockX();
-        int fromZ = from.getBlockZ();
-        // see if player moved off of block horizontally
-        if (toX != fromX || toZ != fromZ || type == Event.Type.PLAYER_TELEPORT) {
-            Plot current = (Plot) playerData.get(ATTR_PLOT);
-            // see if new location is in the same plot (faster than doing a full plot scan)
-            if ((current != null) && current.contains(toX, toZ)) {
-            } else {
-                // where are we now?
-                Plot plot = findPlot(toX, toZ);
-                if (plot != current) {
-                    Player player = e.getPlayer();
-                    if (plotChange(player, current, plot)) {
-                        playerData.put(ATTR_PLOT, plot);
-
-                        Object plotShow = playerData.get(ATTR_PLOT_SHOW);
-                        if (plotShow instanceof Boolean && (Boolean) plotShow) {
+        if (playerData != null) {
+            Event.Type type = e.getType();
+            Location to = e.getTo();
+            int toX = to.getBlockX();
+            int toZ = to.getBlockZ();
+            Location from = e.getFrom();
+            int fromX = from.getBlockX();
+            int fromZ = from.getBlockZ();
+            // see if player moved off of block horizontally
+            if (toX != fromX || toZ != fromZ || type == Event.Type.PLAYER_TELEPORT) {
+                Plot current = playerData.containsKey(ATTR_PLOT) ? (Plot) playerData.get(ATTR_PLOT) : null;
+                // see if new location is in the same plot (faster than doing a full plot scan)
+                if ((current != null) && current.contains(toX, toZ)) {
+                } else {
+                    // where are we now?
+                    Plot plot = findPlot(toX, toZ);
+                    if (plot != current) {
+                        Player player = e.getPlayer();
+                        if (plotChange(player, current, plot)) {
+                            playerData.put(ATTR_PLOT, plot);
                             Util.sendMessage(plugin, player, ChatColor.DARK_AQUA + "Now in plot " + plot);
                         }
-                    }
-                    else {
-                        e.setCancelled(true);
-                        Util.teleport(plugin, player, from);
+                        else {
+                            e.setCancelled(true);
+                            Util.teleport(plugin, player, from);
+                        }
                     }
                 }
             }

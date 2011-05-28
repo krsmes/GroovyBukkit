@@ -1,21 +1,19 @@
 import org.bukkit.event.Event
 import org.bukkit.event.player.PlayerJoinEvent
 import net.krsmes.bukkit.groovy.GroovyRunner
-import net.krsmes.bukkit.groovy.Plots
 
 /*
 Commands:
     plot                     show plot information about your current location
-    plot ON|OFF              turn on or off the messaging of changing plots as you move or teleport
-    plot-list                show a list of all plots
+    plot list                show a list of all plots
 
-    plot-claim               standing in an unclaimed plot, assign yourself as the new owner
-    plot-release             standing in a plot owned by you, release ownership so it becomes an unclaimed plot
-    plot-invite PLAYER       standing in an owned plot, invite PLAYER as a visitor allowed to work in this plot
+    plot claim               standing in an unclaimed plot, assign yourself as the new owner
+    plot release             standing in a plot owned by you, release ownership so it becomes an unclaimed plot
+    plot invite PLAYER       standing in an owned plot, invite PLAYER as a visitor allowed to work in this plot
 
-    plot-home                standing in an owned plot, set this plot's home location (for /warp PLOTNAME commands)
-    plot-open                standing in an owned plot, set this plot as open to the public
-    plot-close               standing in an owned plot, set this plot as closed to the public
+    plot home                standing in an owned plot, set this plot's home location (for /warp PLOTNAME commands)
+    plot open                standing in an owned plot, set this plot as open to the public
+    plot close               standing in an owned plot, set this plot as closed to the public
 
     plot-protection ON|OFF   turn plot protection system on or off
     plot-create NAME         using the area defined by the last two Stick-RightClicks (from powertools), create a named plot
@@ -50,59 +48,16 @@ Notes:
 
  */
 
+def defaultMaxOwned = 3
+
 
 def playerPlot(player, Closure c) {
     def plot = plots().findPlot(player)
     (plot && ((plot.public && player.op) || (!plot.public && (plot.owner == player.name)))) ? c(plot) : "Plot '${plot?.name}' not owned by $player.name"
 }
 
-def defaultMaxOwned = 1
 
-command 'plot-help', { GroovyRunner r, List args ->
-    def help = []
-    if (r.permitted('plot')) {
-        help << "/plot  :show info about current plot"
-        help << "/plot on|off  :show|hide entering/leaving plots"
-    }
-    if (r.permitted('plot-list'))       "/plot-list  :list all plots"
-    if (r.permitted('plot-claim'))      "/plot-claim  :claim the current plot"
-    if (r.permitted('plot-release'))    "/plot-release  :release claim on current plot"
-    if (r.permitted('plot-invite'))     "/plot-invite USER  :invite users to work on the plot"
-    if (r.permitted('plot-home'))       "/plot-home  :set the home location of this plot"
-    if (r.permitted('plot-open'))       "/plot-open  :set this plot to open land"
-    if (r.permitted('plot-close'))      "/plot-close  :set this plot to closed land"
-    help.each { r.player.sendMessage it }
-    null
-}
-
-command 'plot', { GroovyRunner r, List args ->
-    if (args) {
-        if (args[0] in ['on','off']) {
-            r.data.plotShow = args[0] == 'on'
-            if (!r.data.plotShow) r.data.plot = null
-            return "Show plot while moving is ${r.data.plotShow?'on':'off'}"
-        }
-        return "Unknown plot command: ${args[0]}"
-    }
-    def plot = plots().findPlot(r.player)
-    if (!plot) return "You are not in a plotted area"
-
-    [
-        "Plot: $plot.name (${plot.open?'open':'closed'} land)",
-        "Size: $plot.size (${plot.areas?.size()?:0} area(s))",
-        "Owner: ${plot.owner ?: 'unclaimed'} ${p(plot.owner)?.online?'(online)':'(offline)'}",
-        "Visitor: $plot.visitors"
-    ].each { r.player.sendMessage it }
-    "You are ${plot.allowed(r.player) ? '' : 'not '}allowed to work here"
-}
-
-
-command 'plot-list', { GroovyRunner r, List args ->
-    r.plots().data.values().name.toString()
-}
-
-
-command 'plot-claim', { GroovyRunner r, List args ->
+def plotClaim = { GroovyRunner r ->
     def plot = r.plots().findPlot(r.player)
     if (!plot || plot.public) return "Your are not in a plot"
 
@@ -121,7 +76,7 @@ command 'plot-claim', { GroovyRunner r, List args ->
 }
 
 
-command 'plot-release', { GroovyRunner r, List args ->
+def plotRelease = { GroovyRunner r ->
     playerPlot(r.player) { plot ->
         plot.owner = null
         plot.open = false
@@ -130,7 +85,7 @@ command 'plot-release', { GroovyRunner r, List args ->
 }
 
 
-command 'plot-invite', { GroovyRunner r, List args ->
+def plotInvite = { GroovyRunner r, List args ->
     playerPlot(r.player) { plot ->
         args.each {
             if (it.startsWith('-')) {
@@ -148,40 +103,73 @@ command 'plot-invite', { GroovyRunner r, List args ->
 }
 
 
-command 'plot-home', { GroovyRunner r, List args ->
-    playerPlot(r.player) { plot ->
-        plot.home = r.player.location
-        "Plot '$plot.name' home set to $plot.home"
-    }
+def plotSet = { GroovyRunner r, List args ->
+    def setWhat = args.remove(0)
+    def setter =
+        setWhat == 'open' ? { plot ->
+            plot.open = true
+            "Plot '$plot.name' is now open land"
+        } :
+        setWhat == 'close' ? { plot ->
+            plot.open = false
+            "Plot '$plot.name' is now closed land"
+        } :
+        setWhat == 'home' ? { plot ->
+            plot.home = r.player.location
+            "Plot '$plot.name' home set to $plot.home"
+        } :
+        null
+    setter ? playerPlot(r.player, setter) : null
 }
 
 
-command 'plot-open', { GroovyRunner r, List args ->
-    playerPlot(r.player) { plot ->
-        plot.open = true
-        "Plot '$plot.name' is now open land"
+command 'plot', { GroovyRunner r, List args ->
+    def msgs = []
+    if (args) switch (args.remove(0)) {
+        case 'list': return r.plots().plots.values().name.toString();
+
+        case 'claim': return plotClaim(r)
+
+        case 'release': return plotRelease(r)
+
+        case 'invite': return plotInvite(r, args)
+
+        case 'set': return plotSet(r, args)
+
+        default:
+            msgs << "/plot  :show info about current plot"
+            msgs << "/plot list  :list all plots"
+            msgs << "/plot claim  :claim the current plot"
+            msgs << "/plot release  :release claim on current plot"
+            msgs << "/plot invite USER  :invite users to work on the plot"
+            msgs << "/plot set home  :set the home location of this plot"
+            msgs << "/plot set open  :set this plot to open land"
+            msgs << "/plot set close  :set this plot to closed land"
+            break
     }
-}
-
-
-command 'plot-close', { GroovyRunner r, List args ->
-    playerPlot(r.player) { plot ->
-        plot.open = false
-        "Plot '$plot.name' is now closed land"
+    // no args...
+    def plot = r.plots().findPlot(r.player)
+    if (!msgs && plot) {
+        msgs << "Plot: $plot.name (${plot.open ? 'open' : 'closed'} land)"
+        msgs << "Size: $plot.size (${plot.areas?.size() ?: 0} area(s))"
+        msgs << "Owner: ${plot.owner ?: 'unclaimed'} ${p(plot.owner)?.online ? '(online)' : '(offline)'}"
+        msgs << "Visitor: $plot.visitors"
     }
-}
+    if (plot) msgs << "You are ${plot.allowed(r.player) ? '' : 'not '}allowed to work here"
 
+    msgs.each { r.player.sendMessage it }
+    null
+}
 
 
 command 'plot-protection', { GroovyRunner r, List args ->
-    if (args) global.plotProtection = (args[0] == 'on')
-    plots().plotProtection = global.plotProtection
+    if (args) r.plots().plotProtection = (args[0] == 'on')
     "Plot protection is ${plots().plotProtection?'on':'off'}"
 }
 
 
 command 'plot-create', { GroovyRunner r, List args ->
-    if (args?.size() == 0) return "Name meeded to create plot"
+    if (args?.size() == 0) return "Name needed to create plot"
 
     def plot_name = args[0]
     if (plot_name.equalsIgnoreCase('public')) return "You cannot create plot named 'public'"
@@ -276,11 +264,8 @@ command 'plot-max', { GroovyRunner r, List args ->
 
 [
     (Event.Type.PLAYER_JOIN): { GroovyRunner r, PlayerJoinEvent e ->
-        if (!r.data.containsKey('plotShow')) {
-            r.data.plotShow = true
-        }
         if (r.plots().plotProtection) {
-            r.player.sendMessage "This server has plot protection, see '/plot-help'"
+            r.player.sendMessage "This server has plot protection, see '/plot help'"
         }
     }
 ]

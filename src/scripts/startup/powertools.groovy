@@ -70,11 +70,6 @@ command 'ptools', { runner, args ->
 }
 
 
-command 'build', { runner, args ->
-    construct(args[0])
-}
-
-
 def killBlock(Block block) {
     //println "killBlock(): $block"
     if (block.y > 1) {
@@ -98,7 +93,7 @@ def addClickedBlockToInventory(player, block, qty) {
 
 def jumpToTarget(Player player) {
     def target = player.getTargetBlock(null, 128)
-    if (target) {
+    if (target && target.typeId > 0) {
         def above1 = target + 1
         def above2 = target + 2
         if (above1.typeId == 0 && above2.typeId == 0) {
@@ -106,6 +101,9 @@ def jumpToTarget(Player player) {
             def loc = new Location(playerLoc.world, above1.x, above1.y, above1.z, playerLoc.yaw, playerLoc.pitch)
             player.teleport(loc)
         }
+    }
+    else {
+        player.sendMessage "Unable to acquire target"
     }
 }
 
@@ -145,7 +143,8 @@ def incrementData(Block block) {
                 (Material.COBBLESTONE_STAIRS): 3,
                 (Material.WOOD_STAIRS): 3,
                 (Material.LOG): 2,
-                (Material.LEAVES): 2
+                (Material.LEAVES): 2,
+                (Material.LONG_GRASS): 2
         ]
 
     }
@@ -186,7 +185,8 @@ def duplicateBlock(Block block, BlockFace face) {
 def stickClick(Player player, runner, Block block) {
     addStickClick(runner, block)
     player.sendMessage("$ChatColor.DARK_PURPLE${f(player)} $block.x,$block.y,$block.z:$block.typeId $block.state.data")
-    def blocks = new BlockIterator(player, 16).toList()
+    def blocks = []
+    try { blocks = new BlockIterator(player, 16).toList() } catch(e) {}
     def msg = blocks[1..-1].collect { it.typeId in [0,1,2,3,4,8,9,12,13,24,60,78,79] ? it.type.toString().toLowerCase() : it.type.toString() }.join(', ')
     player.sendMessage("$ChatColor.GRAY$msg")
 }

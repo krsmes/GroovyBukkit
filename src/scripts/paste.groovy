@@ -72,7 +72,7 @@ layers.each { layer ->
                                 postProcess << [cur, mat, matdata]
                             }
                             if ((mat == Material.WOODEN_DOOR || mat == Material.IRON_DOOR_BLOCK) && ((cur - 1).type == mat)) {
-                                matdata = matdata | 0x8
+                                matdata |= 0x8
                             }
                             cur.setTypeIdAndData(mat.id, (byte) matdata, false)
                         }
