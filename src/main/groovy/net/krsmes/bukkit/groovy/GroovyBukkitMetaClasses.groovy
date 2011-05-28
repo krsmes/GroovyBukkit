@@ -84,10 +84,10 @@ class GroovyBukkitMetaClasses
 			if (c == Vector.class) return new Vector(delegate.location.x, delegate.location.y, delegate.location.z)
 		}
         Player.metaClass.getRunner = { ->
-            delegate.server.pluginManager.getPlugin('GroovyPlugin').playerRunners[delegate.name]
+            delegate.server.pluginManager.getPlugin(GroovyPlugin.NAME).playerRunners[delegate.name]
         }
         Player.metaClass.getData = {->
-            delegate.runner.data
+            delegate.server.pluginManager.getPlugin(GroovyPlugin.NAME).playerRunners[delegate.name]?.data
         }
 
 

@@ -25,6 +25,8 @@ import java.util.logging.Logger;
 public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener {
     static Logger LOG = Logger.getLogger("Minecraft");
 
+    public static final String NAME = "GroovyBukkit";
+
     public static final String SCRIPT_LOC = "scripts/";
     public static final String STARTUP_LOC = SCRIPT_LOC + "startup/";
     public static final String PLAYER_LOC = SCRIPT_LOC + "players/";
@@ -103,6 +105,10 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             runner._init();
 
             registerEventHandlers();
+
+            for (Player p : getServer().getOnlinePlayers()) {
+                initializePlayer(p);
+            }
 
             enabled = true;
             LOG.info(getDescription().getName() + ' ' + getDescription().getVersion() + " enabled");
