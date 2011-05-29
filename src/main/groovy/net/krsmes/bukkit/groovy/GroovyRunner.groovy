@@ -65,8 +65,11 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
         if (name instanceof File) {
             file = name
         }
+        else if (!data.scriptLoc) {
+            file = new File(plugin.dataFolder, GroovyPlugin.SCRIPT_LOC + name)
+        }
         else {
-            def fullName = scriptLoc + name
+            def fullName = data.scriptLoc + name
             try {
                 URL u = fullName.toURL()
                 return u.text
