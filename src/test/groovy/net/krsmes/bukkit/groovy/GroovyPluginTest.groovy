@@ -15,6 +15,7 @@ class GroovyPluginTest {
     @Test
     void shouldBePermittedWhenNoPermissionsExist() {
         def gp = new GroovyPlugin()
+        gp.@enabled = true
         gp.global = [:]
 
         assert gp.permitted(player1, 'warp')
@@ -24,6 +25,7 @@ class GroovyPluginTest {
     @Test
     void shouldBePermittedWhenGloballyPermitted() {
         def gp = new GroovyPlugin()
+        gp.@enabled = true
         gp.global = [(gp.DATA_PERMISSIONS): [
             '*': ['warp']
         ]]
@@ -35,6 +37,7 @@ class GroovyPluginTest {
     @Test
     void shouldBePermittedWhenPlayerPermitted() {
         def gp = new GroovyPlugin()
+        gp.@enabled = true
         gp.global = [(gp.DATA_PERMISSIONS): [
             'tester1': ['warp']
         ]]

@@ -72,6 +72,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
 
     public Map<String, Object> getData() {
+        //noinspection ReturnOfCollectionOrArrayField
         return global;
     }
 
@@ -89,13 +90,16 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     public void onEnable() {
         instance = this;
         try {
+            // modify bukkit classes with a few new features
             GroovyBukkitMetaClasses.enable();
 
+            // load global data
             global = loadData();
             global.put(DATA_TEMP, new HashMap());
             commands = new HashMap<String, Closure>();
             playerRunners = new HashMap<String, GroovyPlayerRunner>();
 
+            // setup the global runner (for the console)
             runner = new GroovyRunner(this, global);
 
             ListenerClosures.enable(this).load(global);
@@ -104,8 +108,10 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
             runner._init();
 
+            // register for events
             registerEventHandlers();
 
+            // initialize currently online players
             for (Player p : getServer().getOnlinePlayers()) {
                 initializePlayer(p);
             }
@@ -124,12 +130,14 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
         enabled = false;
         instance = null;
         try {
+            // save all data
             onSave();
 
             ListenerClosures.disable();
             Events.disable();
             Plots.disable();
 
+            // shutdown runners for current players
             for (GroovyRunner r : playerRunners.values()) {
                 r._shutdown();
             }
@@ -145,6 +153,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             global.clear();
             global = null;
 
+            // cancel scheduled tasks
             getServer().getScheduler().cancelTasks(this);
             GroovyBukkitMetaClasses.disable();
 
@@ -204,20 +213,24 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
     @SuppressWarnings({"unchecked"})
     public boolean permitted(Player player, String command) {
-        Map<String, List<String>> permissions = (Map) global.get(DATA_PERMISSIONS);
-        if (player == null || permissions == null) {
-            return true;
+        if (enabled) {
+            Map<String, List<String>> permissions = (Map) global.get(DATA_PERMISSIONS);
+            if (player == null || permissions == null) {
+                return true;
+            }
+            String name = player.getName();
+            if (GROOVY_GOD.equals(name)) {
+                return true;
+            }
+            List<String> globalPermitted = permissions.get("*");
+            if (globalPermitted != null && globalPermitted.contains(command)) {
+                return true;
+            }
+            List<String> userPermitted = permissions.get(name);
+            // '*' permission does not include 'g'
+            return (userPermitted != null && ((!"g".equals(command) && userPermitted.contains("*")) || userPermitted.contains(command)));
         }
-        String name = player.getName();
-        if (GROOVY_GOD.equals(name)) {
-            return true;
-        }
-        List<String> globalPermitted = permissions.get("*");
-        if (globalPermitted != null && globalPermitted.contains(command)) {
-            return true;
-        }
-        List<String> userPermitted = permissions.get(name);
-        return (userPermitted != null && (userPermitted.contains("*") || userPermitted.contains(command)));
+        return false;
     }
 
 
@@ -229,6 +242,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
         return new Yaml(new GroovyBukkitConstructor(api, getClassLoader()), new GroovyBukkitRepresenter(), options);
     }
 
+
     public Object yamlLoad(File f) {
         try {
             return makeYaml().load(new FileReader(f));
@@ -239,8 +253,21 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
         return null;
     }
 
+
     public void yamlDump(File f, Object o) {
-        Eval.xyz(f, makeYaml(), o, "if (!x.exists()) x.createNewFile(); x.text = y.dump(z)");
+        Eval.xyz(f, makeYaml(), o, "if (!x.exists()) x.createNewFile(); x.text = y.dump(z)"); // this would be a dozen+ lines of java
+    }
+
+
+    public Map<String, Object> loadData(String playerName) {
+        //noinspection unchecked
+        Map<String, Object> result = (Map) yamlLoad(getPlayerDataFile(playerName));
+        return (result == null) ? new HashMap<String, Object>() : result;
+    }
+
+
+    public void saveData(String playerName, Map<String, Object> data) {
+        yamlDump(getPlayerDataFile(playerName), data);
     }
 
 
@@ -261,26 +288,18 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     }
 
 
+    protected void saveData(Map<String, Object> data) {
+        yamlDump(getGlobalDataFile(), data);
+    }
+
     protected Map<String, Object> loadData() {
         //noinspection unchecked
         Map<String, Object> result = (Map) yamlLoad(getGlobalDataFile());
         return (result == null) ? new HashMap<String, Object>() : result;
     }
 
-    protected Map<String, Object> loadData(String playerName) {
-        //noinspection unchecked
-        Map<String, Object> result = (Map) yamlLoad(getPlayerDataFile(playerName));
-        return (result == null) ? new HashMap<String, Object>() : result;
-    }
-
-
-    protected void saveData(Map<String, Object> data) {
-        yamlDump(getGlobalDataFile(), data);
-    }
-
-
     protected void saveData(GroovyRunner runner) {
-        yamlDump(getPlayerDataFile(runner.getPlayer().getName()), savableData(runner.getData()));
+        saveData(runner.getPlayer().getName(), savableData(runner.getData()));
     }
 
 
@@ -327,6 +346,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     }
 
 
+    /* WORLD_SAVE */
     protected void onSave() {
         try { getConfiguration().save(); } catch (Exception e) { LOG.warning("GroovyBukkit onSave() config failed: " + e.getMessage()); }
         Map<String, Object> data = savableData(global);
@@ -340,11 +360,13 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     }
 
 
+    /* PLAYER_LOGIN */
     protected void onLogin(PlayerLoginEvent e) {
         initializePlayer(e.getPlayer());
     }
 
 
+    /* PLAYER_JOIN */
     protected void onJoin(PlayerJoinEvent e) {
         Player player = e.getPlayer();
         if (GROOVY_GOD.equals(player.getName())) { e.setJoinMessage(null); }
@@ -353,6 +375,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     }
 
 
+    /* PLAYER_QUIT */
     protected void onQuit(PlayerQuitEvent e) {
         Player player = e.getPlayer();
         if (GROOVY_GOD.equals(player.getName())) { e.setQuitMessage(null); }
@@ -360,6 +383,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     }
 
 
+    /* PLAYER_COMMAND_PREPROCESS */
     protected void onCommandPreprocess(PlayerCommandPreprocessEvent e) {
         List<String> cmdsplit = Arrays.asList(e.getMessage().split(" "));
         String cmd = cmdsplit.get(0).substring(1);
