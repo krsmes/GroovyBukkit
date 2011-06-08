@@ -10,10 +10,11 @@ Commands:
     plot claim               standing in an unclaimed plot, assign yourself as the new owner
     plot release             standing in a plot owned by you, release ownership so it becomes an unclaimed plot
     plot invite PLAYER       standing in an owned plot, invite PLAYER as a visitor allowed to work in this plot
+    plot remove PLAYER       standing in an owned plot, remove PLAYER as a visitor allowed to work in this plot
 
-    plot home                standing in an owned plot, set this plot's home location (for /warp PLOTNAME commands)
-    plot open                standing in an owned plot, set this plot as open to the public
-    plot close               standing in an owned plot, set this plot as closed to the public
+    plot set home            standing in an owned plot, set this plot's home location (for /warp PLOTNAME commands)
+    plot set open            standing in an owned plot, set this plot as open to the public
+    plot set close           standing in an owned plot, set this plot as closed to the public
 
     plot-protection ON|OFF   turn plot protection system on or off
     plot-create NAME         using the area defined by the last two Stick-RightClicks (from powertools), create a named plot
@@ -88,17 +89,21 @@ def plotRelease = { GroovyRunner r ->
 def plotInvite = { GroovyRunner r, List args ->
     playerPlot(r.player) { plot ->
         args.each {
-            if (it.startsWith('-')) {
-                def name = it.substring(1)
-                if (plot.visitors.contains(name)) plot.visitors.remove(name)
-                p(name)?.with { sendMessage "You've been uninvited from plot '$plot'"}
-            }
-            else {
-                if (!plot.visitors.contains(it)) plot.visitors << it
-                p(it)?.with { sendMessage "You are invited to work on plot '$plot'"}
-            }
+            if (!plot.visitors.contains(it)) plot.visitors << it
+            p(it)?.with { sendMessage "You are invited to work on plot '$plot'"}
         }
         "Invited ${args.join(',')} to plot '$plot.name'"
+    }
+}
+
+
+def plotRemove = { GroovyRunner r, List args ->
+    playerPlot(r.player) { plot ->
+        args.each {
+            if (plot.visitors.contains(name)) plot.visitors.remove(it)
+            p(it)?.with { sendMessage "You've been removed from plot '$plot'"}
+        }
+        "Removed ${args.join(',')} from plot '$plot.name'"
     }
 }
 
@@ -119,32 +124,75 @@ def plotSet = { GroovyRunner r, List args ->
             "Plot '$plot.name' home set to $plot.home"
         } :
         null
-    setter ? playerPlot(r.player, setter) : null
+
+    setter ? playerPlot(r.player, setter) : "Unknown 'set' command"
+}
+
+
+def plotCorner = { GroovyRunner r ->
+    def p = r.player
+    def plot = r.plots().findPlot(p)
+    if (plot?.public) {
+        def loc = p.location
+        r.data.temp.plotCorner = loc
+        "Plot corner set to $loc.blockX,$loc.blockZ"
+    }
+    else {
+        "You cannot set corner inside another plot"
+    }
+}
+
+
+def plotCreate = { GroovyRunner r, List args ->
+    if (args?.size() == 0) return "Name needed to create plot"
+    def plot_name = args[0]
+    if (plot_name.equalsIgnoreCase('public')) return "You cannot create plot named 'public'"
+    if (r.plots().findPlot(plot_name)) return "Plot '$plot_name' already exists"
+
+    def corner1 = r.data.temp.plotCorner
+    if (!corner1) return "Plot needs an opposite corner, see /plot help"
+
+    def corner2 = r.player.location
+    if (!r.plots().findPlot(corner2)?.public) return "You cannot create plot inside another plot"
+
+    def a = r.area(corner1, corner2)
+    if (a.size > 1024 && !r.player.op) return "You cannot create a plot of this size"
+
+    if (r.plots().createPlot(plot_name, a, r.world))
+        "Plot '$plot_name' created $a (use '/plot claim' to claim)"
+    else
+        "Unable to create plot '$plot_name'"
 }
 
 
 command 'plot', { GroovyRunner r, List args ->
     def msgs = []
     if (args) switch (args.remove(0)) {
-        case 'list': return r.plots().plots.values().name.toString();
+        case 'list': return r.plots().plots.values().name.toString()
 
         case 'claim': return plotClaim(r)
-
         case 'release': return plotRelease(r)
 
         case 'invite': return plotInvite(r, args)
+        case 'remove': return plotRemove(r, args)
 
         case 'set': return plotSet(r, args)
+
+        case 'corner': return plotCorner(r)
+        case 'create': return plotCreate(r, args)
 
         default:
             msgs << "/plot  :show info about current plot"
             msgs << "/plot list  :list all plots"
             msgs << "/plot claim  :claim the current plot"
             msgs << "/plot release  :release claim on current plot"
-            msgs << "/plot invite USER  :invite users to work on the plot"
+            msgs << "/plot invite USERS  :invite users to work on the plot"
+            msgs << "/plot remove USERS  :remove users to work on the plot"
             msgs << "/plot set home  :set the home location of this plot"
             msgs << "/plot set open  :set this plot to open land"
             msgs << "/plot set close  :set this plot to closed land"
+            msgs << "/plot corner  :record corner for new plot"
+            msgs << "/plot create NAME  :create plot using corner and here"
             break
     }
     // no args...
@@ -164,7 +212,7 @@ command 'plot', { GroovyRunner r, List args ->
 
 command 'plot-protection', { GroovyRunner r, List args ->
     if (args) r.plots().plotProtection = (args[0] == 'on')
-    "Plot protection is ${plots().plotProtection?'on':'off'}"
+    "Plot protection is ${r.plots().plotProtection?'on':'off'}"
 }
 
 

@@ -21,6 +21,7 @@ command 't', { r, List args ->
             return "Night of day ${Math.round(w.fullTime / 24000)}"
 
         case 'alwaysday':
+            if (!args) return "Error: Specify 'on' or 'off'"
             if (args?.remove(0)?.toLowerCase() == 'off')
                 unlisten 'alwaysday'
             else {

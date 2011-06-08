@@ -4,29 +4,28 @@ Name: GroovyGive
 Command: gg  (renamed from give to not conflict with the built in give)
 
 Arguments:
-    material
-    player material
-    qty material
-    player qty material
+   material
+   player material
+   qty material
+   player qty material
 
 Examples:
 
-    gg 1
-        give self one stone
+   gg 1
+       give self one stone
 
-    gg 5 stone
-        give self 5 stone
+   gg 5 stone
+       give self 5 stone
 
-    gg krsmes 64 arrow
-        give krsmes 64 arrows
+   gg krsmes 64 arrow
+       give krsmes 64 arrows
 
 Notes:
-    'player' does not need to be a full name... for player piMasterXYZMinecraftGod you can simplify to /give pi bow
-    'material' can be a number or a name... if name is used it should match names in the Material enum
+   'player' does not need to be a full name... for player piMasterXYZMinecraftGod you can simplify to /give pi bow
+   'material' can be a number or a name... if name is used it should match names in the Material enum
 
- */
+*/
 command 'gg', { runner, args ->
-    println "/gg: $args"
 	// give player qty material
 	// give qty material
 	// give material

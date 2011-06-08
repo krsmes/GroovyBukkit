@@ -330,7 +330,9 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
     protected GroovyPlayerRunner initializePlayer(Player player) {
         String playerName = player.getName();
-        GroovyPlayerRunner result = new GroovyPlayerRunner(this, player, loadData(playerName));
+        Map<String, Object> data = loadData(playerName);
+        data.put(DATA_TEMP, new HashMap());
+        GroovyPlayerRunner result = new GroovyPlayerRunner(this, player, data);
         result._init();
         playerRunners.put(playerName, result);
         return result;
