@@ -13,8 +13,7 @@ Commands:
     plot remove PLAYER       standing in an owned plot, remove PLAYER as a visitor allowed to work in this plot
 
     plot set home            standing in an owned plot, set this plot's home location (for /warp PLOTNAME commands)
-    plot set open            standing in an owned plot, set this plot as open to the public
-    plot set close           standing in an owned plot, set this plot as closed to the public
+    plot set open ON|OFF     standing in an owned plot, set this plot as open to the public
 
     plot-protection ON|OFF   turn plot protection system on or off
     plot-create NAME         using the area defined by the last two Stick-RightClicks (from powertools), create a named plot
@@ -86,6 +85,13 @@ def plotRelease = { GroovyRunner r ->
 }
 
 
+def plotHome = { GroovyRunner r ->
+    playerPlot(r.player) { plot ->
+        plot.home = r.player.location
+        "Plot '$plot.name' home set to $plot.home"
+    }
+}
+
 def plotInvite = { GroovyRunner r, List args ->
     playerPlot(r.player) { plot ->
         args.each {
@@ -109,23 +115,33 @@ def plotRemove = { GroovyRunner r, List args ->
 
 
 def plotSet = { GroovyRunner r, List args ->
-    def setWhat = args.remove(0)
-    def setter =
-        setWhat == 'open' ? { plot ->
-            plot.open = true
-            "Plot '$plot.name' is now open land"
-        } :
-        setWhat == 'close' ? { plot ->
-            plot.open = false
-            "Plot '$plot.name' is now closed land"
-        } :
-        setWhat == 'home' ? { plot ->
-            plot.home = r.player.location
-            "Plot '$plot.name' home set to $plot.home"
-        } :
-        null
+    def setWhat = args ? args.remove(0) : '?'
+    playerPlot(r.player) { plot ->
+        if (plot.hasProperty(setWhat)) {
+            plot."$setWhat" = args[0] == 'on'
+            "Plot '$plot.name' $setWhat is ${plot."$setWhat" ? 'on' : 'off'}"
+        }
+        else {
+            "try open,${plot.properties.collect {k, v -> k.startsWith('no') ? k : null}.findAll{it}.join(',')}"
+        }
+    }
+}
 
-    setter ? playerPlot(r.player, setter) : "Unknown 'set' command"
+
+def plotBlockInteract = { GroovyRunner r, String type, List args ->
+    playerPlot(r.player) { plot ->
+        def toAdd = []
+        def toRemove = []
+        args.each {
+            def i = it.toInteger()
+            i < 0 ? toRemove.add(i.abs()) : toAdd.add(i)
+        }
+        def newSet = plot."$type"
+        newSet.addAll(toAdd)
+        newSet.removeAll(toRemove)
+        plot."$type" = newSet
+        newSet.sort()
+    }
 }
 
 
@@ -172,11 +188,15 @@ command 'plot', { GroovyRunner r, List args ->
 
         case 'claim': return plotClaim(r)
         case 'release': return plotRelease(r)
+        case 'home': return plotHome(r)
 
         case 'invite': return plotInvite(r, args)
         case 'remove': return plotRemove(r, args)
 
         case 'set': return plotSet(r, args)
+        case 'place': return plotBlockInteract(r, 'placeable', args)
+        case 'break': return plotBlockInteract(r, 'breakable', args)
+        case 'interact': return plotBlockInteract(r, 'interactable', args)
 
         case 'corner': return plotCorner(r)
         case 'create': return plotCreate(r, args)
@@ -187,10 +207,10 @@ command 'plot', { GroovyRunner r, List args ->
             msgs << "/plot claim  :claim the current plot"
             msgs << "/plot release  :release claim on current plot"
             msgs << "/plot invite USERS  :invite users to work on the plot"
-            msgs << "/plot remove USERS  :remove users to work on the plot"
-            msgs << "/plot set home  :set the home location of this plot"
-            msgs << "/plot set open  :set this plot to open land"
-            msgs << "/plot set close  :set this plot to closed land"
+            msgs << "/plot remove USERS  :remove users from working on the plot"
+            msgs << "/plot home  :set the home location of this plot (for warp)"
+            msgs << "/plot set X ON|OFF  :set plot property ON or OFF"
+            msgs << "/plot place|break|interact [-]ID  :permit/deny public action"
             msgs << "/plot corner  :record corner for new plot"
             msgs << "/plot create NAME  :create plot using corner and here"
             break
@@ -199,9 +219,25 @@ command 'plot', { GroovyRunner r, List args ->
     def plot = r.plots().findPlot(r.player)
     if (!msgs && plot) {
         msgs << "Plot: $plot.name (${plot.open ? 'open' : 'closed'} land)"
-        msgs << "Size: $plot.size (${plot.areas?.size() ?: 0} area(s))"
-        msgs << "Owner: ${plot.owner ?: 'unclaimed'} ${p(plot.owner)?.online ? '(online)' : '(offline)'}"
-        msgs << "Visitor: $plot.visitors"
+        if (!plot.public) {
+            msgs << "Size: $plot.size (${plot.areas?.size() ?: 0} area(s))"
+            msgs << "Owner: ${plot.owner ?: 'unclaimed'} ${p(plot.owner)?.online ? '(online)' : '(offline)'}"
+        }
+        def tmp = plot.visitors
+        if (tmp)
+            msgs << "Visitors: $tmp"
+        tmp = plot.properties.collect {k, v -> k.startsWith('no') && v ? k : null}.findAll {it}.join(',')
+        if (tmp)
+            msgs << "Settings: $tmp"
+        tmp = plot.placeable.sort().join(',')
+        if (tmp)
+            msgs << "Placeable: $tmp"
+        tmp = plot.breakable.sort().join(',')
+        if (tmp)
+            msgs << "Breakable: $tmp"
+        tmp = plot.interactable.sort().join(',')
+        if (tmp)
+            msgs << "Interactable: $tmp"
     }
     if (plot) msgs << "You are ${plot.allowed(r.player) ? '' : 'not '}allowed to work here"
 

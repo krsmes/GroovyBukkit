@@ -10,11 +10,17 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
+import org.bukkit.event.entity.ExplosionPrimeEvent;
+import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.weather.LightningStrikeEvent;
 import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.PluginManager;
 
+import java.lang.annotation.Target;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -115,6 +121,43 @@ public class Plots implements EventExecutor, Listener {
                     current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
                     processEvent(current, pie);
                     break;
+
+                case EXPLOSION_PRIME:
+                    ExplosionPrimeEvent epe = (ExplosionPrimeEvent) event;
+                    current = findPlot(epe.getEntity());
+                    epe.setCancelled(current.isNoExplode());
+                    break;
+
+                case CREATURE_SPAWN:
+                    CreatureSpawnEvent cse = (CreatureSpawnEvent) event;
+                    current = findPlot(cse.getLocation());
+                    cse.setCancelled(current.isNoSpawn());
+                    break;
+
+                case ENTITY_TARGET:
+                    EntityTargetEvent ete = (EntityTargetEvent) event;
+                    player = ete.getTarget() instanceof Player ? (Player) ete.getTarget() : null;
+                    if (player != null) {
+                        current = findPlot(player);
+                        if (current.isNoTarget() && (player.getName().equals(current.getOwner()) || current.getVisitors().contains(player.getName()))) {
+                            ete.setCancelled(true);
+                        }
+                    }
+                    break;
+
+                case PLAYER_CHAT:
+                    PlayerChatEvent pce = (PlayerChatEvent) event;
+                    player = pce.getPlayer();
+                    current = findPlot(player);
+                    pce.setCancelled(current.isNoChat());
+                    break;
+
+                case LIGHTNING_STRIKE:
+                    LightningStrikeEvent lse = (LightningStrikeEvent) event;
+                    current = findPlot(lse.getLightning());
+                    lse.setCancelled(current.isNoLightning());
+                    break;
+
             }
         }
     }
@@ -220,6 +263,12 @@ public class Plots implements EventExecutor, Listener {
         mgr.registerEvent(Event.Type.PLAYER_TELEPORT, this, this, Event.Priority.Low, plugin);
         mgr.registerEvent(Event.Type.BLOCK_DAMAGE, this, this, Event.Priority.Lowest, plugin);
         mgr.registerEvent(Event.Type.PLAYER_INTERACT, this, this, Event.Priority.Lowest, plugin);
+
+        mgr.registerEvent(Event.Type.EXPLOSION_PRIME, this, this, Event.Priority.Lowest, plugin);
+        mgr.registerEvent(Event.Type.CREATURE_SPAWN, this, this, Event.Priority.Lowest, plugin);
+        mgr.registerEvent(Event.Type.ENTITY_TARGET, this, this, Event.Priority.Lowest, plugin);
+        mgr.registerEvent(Event.Type.PLAYER_CHAT, this, this, Event.Priority.Lowest, plugin);
+        mgr.registerEvent(Event.Type.LIGHTNING_STRIKE, this, this, Event.Priority.Lowest, plugin);
     }
 
 
@@ -248,21 +297,30 @@ public class Plots implements EventExecutor, Listener {
             int fromZ = from.getBlockZ();
             // see if player moved off of block horizontally
             if (toX != fromX || toZ != fromZ || type == Event.Type.PLAYER_TELEPORT) {
+                Player player = e.getPlayer();
                 Plot current = playerData.containsKey(ATTR_PLOT) ? (Plot) playerData.get(ATTR_PLOT) : null;
                 // see if new location is in the same plot (faster than doing a full plot scan)
                 if ((current != null) && current.contains(toX, toZ)) {
-                } else {
+                    if (current.isNoTeleport() && type == Event.Type.PLAYER_TELEPORT) {
+                        e.setCancelled(true);
+                    }
+                }
+                else {
                     // where are we now?
                     Plot plot = findPlot(toX, toZ);
                     if (plot != current) {
-                        Player player = e.getPlayer();
-                        if (plotChange(player, current, plot)) {
+                        if ((plot.isNoTeleport() || (current != null && current.isNoTeleport())) && type == Event.Type.PLAYER_TELEPORT) {
+                            e.setCancelled(true);
+                        }
+                        else if (plotChange(player, current, plot)) {
                             playerData.put(ATTR_PLOT, plot);
                             Util.sendMessage(plugin, player, ChatColor.DARK_AQUA + "Now in plot " + plot);
                         }
                         else {
                             e.setCancelled(true);
-                            Util.teleport(plugin, player, from);
+                            if (type == Event.Type.PLAYER_MOVE) {
+                                Util.teleport(plugin, player, from);
+                            }
                         }
                     }
                 }

@@ -4,7 +4,6 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
@@ -21,10 +20,23 @@ public class Plot implements Serializable {
     String name;
     String owner;
     Location home;
+
     List<Area> areas = new ArrayList<Area>();
     List<String> visitors = new ArrayList<String>();
+
     int startDepth = PLOT_START_DEPTH;
+
     boolean open;
+    boolean noExplode;
+    boolean noSpawn;
+    boolean noTarget;
+    boolean noTeleport;
+    boolean noChat;
+    boolean noLightning;
+
+    int[] placeableArr = new int[0];
+    int[] breakableArr = new int[0];
+    int[] interactableArr = new int[0];
 
     public Plot() {}
 
@@ -112,6 +124,79 @@ public class Plot implements Serializable {
         this.open = open;
     }
 
+    public boolean isNoExplode() {
+        return noExplode;
+    }
+
+    public void setNoExplode(boolean noExplode) {
+        this.noExplode = noExplode;
+    }
+
+    public boolean isNoSpawn() {
+        return noSpawn;
+    }
+
+    public void setNoSpawn(boolean noSpawn) {
+        this.noSpawn = noSpawn;
+    }
+
+    public boolean isNoTarget() {
+        return noTarget;
+    }
+
+    public void setNoTarget(boolean noTarget) {
+        this.noTarget = noTarget;
+    }
+
+    public boolean isNoTeleport() {
+        return noTeleport;
+    }
+
+    public void setNoTeleport(boolean noTeleport) {
+        this.noTeleport = noTeleport;
+    }
+
+    public boolean isNoChat() {
+        return noChat;
+    }
+
+    public void setNoChat(boolean noChat) {
+        this.noChat = noChat;
+    }
+
+    public boolean isNoLightning() {
+        return noLightning;
+    }
+
+    public void setNoLightning(boolean noLightning) {
+        this.noLightning = noLightning;
+    }
+
+    public Set<Integer> getPlaceable() {
+        return intArrToSet(placeableArr);
+    }
+
+    public void setPlaceable(Set<Integer> value) {
+        placeableArr = setToIntArr(value);
+    }
+
+    public Set<Integer> getBreakable() {
+        return intArrToSet(breakableArr);
+    }
+
+    public void setBreakable(Set<Integer> value) {
+        breakableArr = setToIntArr(value);
+    }
+
+    public Set<Integer> getInteractable() {
+        return intArrToSet(interactableArr);
+    }
+
+    public void setInteractable(Set<Integer> value) {
+        interactableArr = setToIntArr(value);
+    }
+
+
     public boolean isPublic() {
         return false;
     }
@@ -161,20 +246,21 @@ public class Plot implements Serializable {
 
     public boolean allowDamage(Player player, Block block) {
         // assumes plot contains block.x and block.z
-        return (block.getY() < startDepth || allowed(player));
+        return (block.getY() < startDepth || allowed(player)) ||
+                Arrays.binarySearch(breakableArr, block.getTypeId()) >= 0;
     }
 
     public boolean allowInteract(Player player, Block block, ItemStack item) {
         // assumes plot contains block.x and block.z
-        return (block == null || block.getY() < startDepth || allowed(player));
+        return (block == null || block.getY() < startDepth || allowed(player)) ||
+                (item != null && Arrays.binarySearch(placeableArr, item.getTypeId()) >= 0) ||
+                (Arrays.binarySearch(interactableArr, block.getTypeId()) >= 0);
     }
 
     public void processEvent(PlayerInteractEvent e) {
-//        if ((e.getAction() != Action.RIGHT_CLICK_BLOCK || !allowInteract(e.getPlayer(), e.getClickedBlock(), e.getItem())) && !allowed(e.getPlayer())) {
         if (!allowInteract(e.getPlayer(), e.getClickedBlock(), e.getItem())) {
             e.setUseInteractedBlock(Event.Result.DENY);
         }
-//        System.out.println("Plot: " + e.getEventName() + " (" + e.getPlayer().getName() + "): item=" + e.getItem() + ", action=" + e.getAction() + ", clickedBlock=" + e.getClickedBlock() + " useBlock=" + e.useInteractedBlock());
     }
 
     public void processEvent(BlockDamageEvent e) {
@@ -183,5 +269,23 @@ public class Plot implements Serializable {
         }
     }
 
+
+    static Set<Integer> intArrToSet(int[] arr) {
+        Set<Integer> result = new HashSet<Integer>(arr.length);
+        for (int i : arr) {
+            result.add(i);
+        }
+        return result;
+    }
+
+    static int[] setToIntArr(Set<Integer> value) {
+        int[] result = new int[value.size()];
+        int idx = 0;
+        for (int i : value) {
+            result[idx++] = i;
+        }
+        Arrays.sort(result);
+        return result;
+    }
 
 }

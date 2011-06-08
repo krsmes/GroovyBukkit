@@ -82,7 +82,7 @@ public class Util {
 
 
     public static void teleport(GroovyPlugin plugin, final Player player, final Location dest) {
-        plugin.getServer().getScheduler().scheduleAsyncDelayedTask(plugin,
+        plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin,
                 new Runnable() {
                     public void run() {
                         player.teleport(dest);

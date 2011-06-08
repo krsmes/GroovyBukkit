@@ -1,10 +1,7 @@
 package net.krsmes.bukkit.groovy;
 
-import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -27,6 +24,9 @@ public class PublicPlot extends Plot {
     public PublicPlot() {
         super(PUBLIC_PLOT_NAME);
         setStartDepth(PUBLIC_PLOT_START_DEPTH);
+        placeableArr = PLACEABLE;
+        breakableArr = BREAKABLE;
+        interactableArr = INTERACTABLE;
     }
 
 
@@ -55,15 +55,4 @@ public class PublicPlot extends Plot {
     public void addArea(Area area) {
     }
 
-    @Override
-    public boolean allowDamage(Player player, Block block) {
-        return super.allowDamage(player, block) || Arrays.binarySearch(BREAKABLE, block.getTypeId()) >= 0;
-    }
-
-    @Override
-    public boolean allowInteract(Player player, Block block, ItemStack item) {
-        return super.allowInteract(player, block, item) ||
-            (item != null && Arrays.binarySearch(PLACEABLE, item.getTypeId()) >= 0) ||
-            (Arrays.binarySearch(INTERACTABLE, block.getTypeId()) >= 0);
-    }
 }

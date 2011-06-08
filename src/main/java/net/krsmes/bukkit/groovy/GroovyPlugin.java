@@ -130,6 +130,9 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
         enabled = false;
         instance = null;
         try {
+            // cancel scheduled tasks
+            getServer().getScheduler().cancelTasks(this);
+
             // save all data
             onSave();
 
@@ -153,8 +156,6 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             global.clear();
             global = null;
 
-            // cancel scheduled tasks
-            getServer().getScheduler().cancelTasks(this);
             GroovyBukkitMetaClasses.disable();
 
             LOG.info(getDescription().getName() + ' ' + getDescription().getVersion() + " disabled");
