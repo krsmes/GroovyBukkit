@@ -9,7 +9,6 @@ import org.bukkit.event.Event.Result
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.inventory.ItemStack
 import org.bukkit.event.block.BlockDamageEvent
-import groovy.transform.Field
 
 /*
 Command: ptools
@@ -95,29 +94,6 @@ class PowerToolsConst {
 }
 
 
-command 'ptools', { runner, args ->
-
-    if (args && args.size() == 1) {
-        if (args[0] == 'help') {
-            [
-                "/ptools on|off : turn powertools on or off",
-                "Hand-Sneak-Click : destroy block",
-                "Hand-RightClick : copy block to hand",
-                "Hand-Sneak-RightClick : pick up block",
-                "Stick-Click : cycle block type or data",
-                "Stick-Sneak-Click : duplicate block",
-                "Block-Click : change block to block in hand",
-                "Block-RightClick : infinite place block"
-            ].each { runner.player.sendMessage(it) }
-        }
-        else {
-            runner.data.powertools = (args[0] == 'on')
-        }
-    }
-    "PowerTools are ${runner.data.powertools ? 'on' : 'off'} ('/ptools help' for info)"
-}
-
-
 def killBlock(Block block) {
     if (block.y > 1) {
         block.type = Material.AIR
@@ -168,10 +144,33 @@ def duplicateBlock(Block block, BlockFace face) {
 
 
 
+command 'ptools', { runner, args ->
+    if (args && args.size() == 1) {
+        if (args[0] == 'help') {
+            [
+                    "/ptools on|off : turn powertools on or off",
+                    "Hand-Sneak-Click : destroy block",
+                    "Hand-RightClick : copy block to hand",
+                    "Hand-Sneak-RightClick : pick up block",
+                    "Stick-Click : cycle block type or data",
+                    "Stick-Sneak-Click : duplicate block",
+                    "Block-Click : change block to block in hand",
+                    "Block-RightClick : infinite place block"
+            ].each { runner.player.sendMessage(it) }
+        }
+        else {
+            runner.data.powertools = (args[0] == 'on')
+        }
+    }
+    "PowerTools are ${runner.data.powertools ? 'on' : 'off'} ('/ptools help' for info)"
+}
+
+
+
 [
     (Event.Type.PLAYER_JOIN): { runner, PlayerJoinEvent e ->
         if (runner.permitted('ptools')) {
-            runner.player.sendMessage "You have ptools permissions, see '/ptools help'"
+            runner.player.sendMessage "You have PowerTools permissions, see '/ptools help'"
         }
     },
 

@@ -51,6 +51,7 @@ listen "debug", [
 	(Event.Type.SIGN_CHANGE):           { SignChangeEvent it        -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, lines=${it.lines.join(',')}" },
 	(Event.Type.REDSTONE_CHANGE):       { BlockRedstoneEvent it     -> log "$it.eventName: ${blkstr(it.block)} $it.oldCurrent->$it.newCurrent" },
 	(Event.Type.BLOCK_BREAK):           { BlockBreakEvent it        -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name" },
+	(Event.Type.SNOW_FORM):             { SnowFormEvent it          -> log "$it.eventName ${blkstr(it.block)}: data=$it.data" },
 
 	(Event.Type.INVENTORY_OPEN):        { PlayerInventoryEvent it   -> log "$it.eventName $it.player.name: " },
 	(Event.Type.INVENTORY_CLOSE):       { log "$it.eventName $it.player.name" },
@@ -65,8 +66,10 @@ listen "debug", [
 	(Event.Type.CHUNK_GENERATION):      { log "$it.eventName" },
 	(Event.Type.ITEM_SPAWN):            { log "$it.eventName" },
 	(Event.Type.SPAWN_CHANGE):          { SpawnChangeEvent it       -> log "$it.eventName: previousLocation=${locstr(it.previousLocation)}" },
-	(Event.Type.WORLD_SAVE):            { WorldEvent it             -> log "$it.eventName: $it.world" },
-	(Event.Type.WORLD_LOAD):            { WorldEvent it             -> log "$it.eventName: $it.world" },
+	(Event.Type.WORLD_SAVE):            { WorldSaveEvent it         -> log "$it.eventName: $it.world" },
+	(Event.Type.WORLD_INIT):            { WorldInitEvent it         -> log "$it.eventName: $it.world" },
+	(Event.Type.WORLD_LOAD):            { WorldLoadEvent it         -> log "$it.eventName: $it.world" },
+	(Event.Type.WORLD_UNLOAD):          { WorldUnloadEvent it       -> log "$it.eventName: $it.world" },
 
     (Event.Type.PAINTING_PLACE):        { PaintingPlaceEvent it     -> log "$it.eventName ${entstr(it.painting)}" },
     (Event.Type.PAINTING_BREAK):        { PaintingBreakEvent it     -> log "$it.eventName ${entstr(it.painting)}: cause=$it.cause" },
