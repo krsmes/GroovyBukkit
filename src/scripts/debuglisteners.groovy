@@ -49,7 +49,7 @@ listen "debug", [
 	(Event.Type.BLOCK_BURN):            { BlockBurnEvent it         -> log "$it.eventName ${blkstr(it.block)}" },
 	(Event.Type.LEAVES_DECAY):          { LeavesDecayEvent it       -> log "$it.eventName ${blkstr(it.block)}" },
 	(Event.Type.SIGN_CHANGE):           { SignChangeEvent it        -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name, lines=${it.lines.join(',')}" },
-	(Event.Type.REDSTONE_CHANGE):       { BlockRedstoneEvent it     -> log "$it.eventName: ${blkstr(it.block)} $it.oldCurrent->$it.newCurrent" },
+	(Event.Type.REDSTONE_CHANGE):       { BlockRedstoneEvent it     -> log "$it.eventName ${blkstr(it.block)}: $it.oldCurrent->$it.newCurrent" },
 	(Event.Type.BLOCK_BREAK):           { BlockBreakEvent it        -> log "$it.eventName ${blkstr(it.block)}: by $it.player.name" },
 	(Event.Type.SNOW_FORM):             { SnowFormEvent it          -> log "$it.eventName ${blkstr(it.block)}: data=$it.data" },
 
@@ -81,6 +81,7 @@ listen "debug", [
     (Event.Type.ENTITY_INTERACT):       { EntityInteractEvent it    -> log "$it.eventName ${entstr(it.entity)}: block=${blkstr(it.block)}" },
     (Event.Type.CREEPER_POWER):         { CreeperPowerEvent it      -> log "$it.eventName ${entstr(it.entity)}: cause=$it.cause" },
     (Event.Type.PIG_ZAP):               { PigZapEvent it            -> log "$it.eventName ${entstr(it.entity)}" },
+    (Event.Type.ENTITY_TAME):           { EntityTameEvent it        -> log "$it.eventName ${entstr(it.entity)}: owner=$it.owner" },
 
     (Event.Type.LIGHTNING_STRIKE):      { LightningStrikeEvent it   -> log "$it.eventName ${entstr(it.entity)}"},
     (Event.Type.WEATHER_CHANGE):        { WeatherChangeEvent it     -> log "$it.eventName: on=${it.toWeatherState()}" },

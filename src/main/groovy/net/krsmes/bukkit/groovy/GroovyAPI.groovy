@@ -14,6 +14,7 @@ import org.bukkit.World
 import org.bukkit.Server
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.CreatureType
+import org.bukkit.TreeType
 
 class GroovyAPI {
 	static Logger _log = Logger.getLogger("Minecraft")
@@ -98,11 +99,36 @@ class GroovyAPI {
 	}
 
 
-    def make(String name, def loc, int qty = 1) {
+    def spawn(String name, def loc, int qty = 1) {
         loc = l(loc)
         CreatureType creatureType = CreatureType."${stringToType(name)}"
         def ents = (1..qty).collect { world.spawnCreature(loc, creatureType) }
         ents ? ents.size() > 1 ? ents : ents[0] : null
+    }
+
+
+    def drop(def loc, def item) {
+        loc = l(loc)
+        item = i(item)
+        world.dropItem(loc, item)
+    }
+
+
+    def tree(def loc, def type) {
+        loc = l(loc)
+        world.generateTree(loc, type as TreeType)
+    }
+
+
+    def explosion(def loc, float power = 4.0) {
+        loc = l(loc)
+        world.createExplosion(loc.x, loc.y, loc.z, power)
+    }
+
+
+    def lightning(def loc) {
+        loc = l(loc)
+        world.strikeLightning(loc)
     }
 
 

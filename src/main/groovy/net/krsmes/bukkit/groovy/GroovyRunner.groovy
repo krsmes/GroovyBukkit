@@ -173,16 +173,6 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 	}
 
 
-//
-// Bukkit helpers
-//
-
-
-	def make(String name, int qty = 1) {
-		make(name, world.spawnLocation, qty)
-	}
-
-
 
 //
 // listener registration

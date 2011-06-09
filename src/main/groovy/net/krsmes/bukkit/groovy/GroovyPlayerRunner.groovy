@@ -22,7 +22,8 @@ class GroovyPlayerRunner extends GroovyRunner {
 
 	void _updateVars() {
         super._updateVars()
-		Location location = player.location
+        Location location = player.location
+
 		vars.me = player
 		vars.inv = player.inventory
 		vars.here = location
@@ -63,11 +64,6 @@ class GroovyPlayerRunner extends GroovyRunner {
 //
 // Bukkit helpers
 //
-
-
-	def make(String name, int qty = 1) {
-		make(name, player.location, qty)
-	}
 
 
 	void inv(int pos, def item, int qty = 1) {
