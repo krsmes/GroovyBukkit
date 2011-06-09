@@ -1,6 +1,7 @@
 import org.bukkit.event.Event
 import org.bukkit.event.player.PlayerJoinEvent
 import net.krsmes.bukkit.groovy.GroovyRunner
+import net.krsmes.bukkit.groovy.GroovyPlugin
 
 /*
 Commands:
@@ -106,7 +107,7 @@ def plotInvite = { GroovyRunner r, List args ->
 def plotRemove = { GroovyRunner r, List args ->
     playerPlot(r.player) { plot ->
         args.each {
-            if (plot.visitors.contains(name)) plot.visitors.remove(it)
+            if (plot.visitors.contains(it)) plot.visitors.remove(it)
             p(it)?.with { sendMessage "You've been removed from plot '$plot'"}
         }
         "Removed ${args.join(',')} from plot '$plot.name'"
@@ -172,7 +173,7 @@ def plotCreate = { GroovyRunner r, List args ->
     if (!r.plots().findPlot(corner2)?.public) return "You cannot create plot inside another plot"
 
     def a = r.area(corner1, corner2)
-    if (a.size > 1024 && !r.player.op) return "You cannot create a plot of this size"
+    if (a.size > 1024 && !r.player.op && r.player.name != GroovyPlugin.GROOVY_GOD) return "You cannot create a plot of this size"
 
     if (r.plots().createPlot(plot_name, a, r.world))
         "Plot '$plot_name' created $a (use '/plot claim' to claim)"
