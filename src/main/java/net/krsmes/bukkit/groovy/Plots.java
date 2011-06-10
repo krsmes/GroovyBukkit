@@ -10,7 +10,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockDamageEvent;
+import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.player.PlayerChatEvent;
@@ -139,9 +141,7 @@ public class Plots implements EventExecutor, Listener {
                     player = ete.getTarget() instanceof Player ? (Player) ete.getTarget() : null;
                     if (player != null) {
                         current = findPlot(player);
-                        if (current.isNoTarget() && (player.getName().equals(current.getOwner()) || current.getVisitors().contains(player.getName()))) {
-                            ete.setCancelled(true);
-                        }
+                        ete.setCancelled(current.isNoTarget() && current.allowed(player));
                     }
                     break;
 
@@ -158,6 +158,20 @@ public class Plots implements EventExecutor, Listener {
                     lse.setCancelled(current.isNoLightning());
                     break;
 
+                case BLOCK_IGNITE:
+                    BlockIgniteEvent bie = (BlockIgniteEvent) event;
+                    current = findPlot(bie.getBlock().getLocation());
+                    bie.setCancelled(current.isNoIgnite());
+                    break;
+
+                case ENTITY_DAMAGE:
+                    EntityDamageEvent ede = (EntityDamageEvent) event;
+                    player = ede.getEntity() instanceof Player ? (Player) ede.getEntity() : null;
+                    if (player != null) {
+                        current = findPlot(player);
+                        ede.setCancelled(current.isNoDamage() && current.allowed(player));
+                    }
+                    break;
             }
         }
     }
@@ -269,6 +283,7 @@ public class Plots implements EventExecutor, Listener {
         mgr.registerEvent(Event.Type.ENTITY_TARGET, this, this, Event.Priority.Lowest, plugin);
         mgr.registerEvent(Event.Type.PLAYER_CHAT, this, this, Event.Priority.Lowest, plugin);
         mgr.registerEvent(Event.Type.LIGHTNING_STRIKE, this, this, Event.Priority.Lowest, plugin);
+        mgr.registerEvent(Event.Type.BLOCK_IGNITE, this, this, Event.Priority.Lowest, plugin);
     }
 
 
@@ -300,7 +315,7 @@ public class Plots implements EventExecutor, Listener {
                 Player player = e.getPlayer();
                 Plot current = playerData.containsKey(ATTR_PLOT) ? (Plot) playerData.get(ATTR_PLOT) : null;
                 // see if new location is in the same plot (faster than doing a full plot scan)
-                if ((current != null) && current.contains(toX, toZ)) {
+                if (current != null && current.contains(toX, toZ)) {
                     if (current.isNoTeleport() && type == Event.Type.PLAYER_TELEPORT) {
                         e.setCancelled(true);
                     }
@@ -309,7 +324,7 @@ public class Plots implements EventExecutor, Listener {
                     // where are we now?
                     Plot plot = findPlot(toX, toZ);
                     if (plot != current) {
-                        if ((plot.isNoTeleport() || (current != null && current.isNoTeleport())) && type == Event.Type.PLAYER_TELEPORT) {
+                        if (current != null && current.isNoTeleport() && type == Event.Type.PLAYER_TELEPORT) {
                             e.setCancelled(true);
                         }
                         else if (plotChange(player, current, plot)) {

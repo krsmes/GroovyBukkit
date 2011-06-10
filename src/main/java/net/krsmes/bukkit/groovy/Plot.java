@@ -33,10 +33,16 @@ public class Plot implements Serializable {
     boolean noTeleport;
     boolean noChat;
     boolean noLightning;
+    boolean noIgnite;
+    boolean noDamage;
 
     int[] placeableArr = new int[0];
     int[] breakableArr = new int[0];
     int[] interactableArr = new int[0];
+
+    int[] unplaceableArr = new int[0];
+    int[] unbreakableArr = new int[0];
+    int[] uninteractableArr = new int[0];
 
     public Plot() {}
 
@@ -172,6 +178,22 @@ public class Plot implements Serializable {
         this.noLightning = noLightning;
     }
 
+    public boolean isNoIgnite() {
+        return noIgnite;
+    }
+
+    public void setNoIgnite(boolean noIgnite) {
+        this.noIgnite = noIgnite;
+    }
+
+    public boolean isNoDamage() {
+        return noDamage;
+    }
+
+    public void setNoDamage(boolean noDamage) {
+        this.noDamage = noDamage;
+    }
+
     public Set<Integer> getPlaceable() {
         return intArrToSet(placeableArr);
     }
@@ -194,6 +216,31 @@ public class Plot implements Serializable {
 
     public void setInteractable(Set<Integer> value) {
         interactableArr = setToIntArr(value);
+    }
+
+
+    public Set<Integer> getUnplaceable() {
+        return intArrToSet(unplaceableArr);
+    }
+
+    public void setUnplaceable(Set<Integer> value) {
+        unplaceableArr = setToIntArr(value);
+    }
+
+    public Set<Integer> getUnbreakable() {
+        return intArrToSet(unbreakableArr);
+    }
+
+    public void setUnbreakable(Set<Integer> value) {
+        unbreakableArr = setToIntArr(value);
+    }
+
+    public Set<Integer> getUninteractable() {
+        return intArrToSet(uninteractableArr);
+    }
+
+    public void setUninteractable(Set<Integer> value) {
+        uninteractableArr = setToIntArr(value);
     }
 
 
@@ -230,7 +277,7 @@ public class Plot implements Serializable {
     }
 
     public boolean allowed(String name) {
-        return (open || name.equals(owner) || visitors.contains(name));
+        return open || name.equals(owner) || visitors.contains(name);
     }
 
     public boolean allowed(Player player) {
@@ -246,15 +293,23 @@ public class Plot implements Serializable {
 
     public boolean allowDamage(Player player, Block block) {
         // assumes plot contains block.x and block.z
-        return (block.getY() < startDepth || allowed(player)) ||
-                Arrays.binarySearch(breakableArr, block.getTypeId()) >= 0;
+        int typeId = block.getTypeId();
+        return (block.getY() < startDepth ||
+                (allowed(player)) && Arrays.binarySearch(unbreakableArr, typeId) < 0) ||
+                Arrays.binarySearch(breakableArr, typeId) >= 0;
     }
 
     public boolean allowInteract(Player player, Block block, ItemStack item) {
         // assumes plot contains block.x and block.z
-        return (block == null || block.getY() < startDepth || allowed(player)) ||
-                (item != null && Arrays.binarySearch(placeableArr, item.getTypeId()) >= 0) ||
-                (Arrays.binarySearch(interactableArr, block.getTypeId()) >= 0);
+        if (block == null || block.getY() < startDepth) { return true; }
+        int typeId = item == null ? 0 : item.getTypeId();
+        if (typeId > 0) {
+            return (allowed(player) && Arrays.binarySearch(unplaceableArr, typeId) < 0) ||
+                    (Arrays.binarySearch(placeableArr, typeId) >= 0);
+        }
+        typeId = block.getTypeId();
+        return (allowed(player) && Arrays.binarySearch(uninteractableArr, typeId) < 0) ||
+                (Arrays.binarySearch(interactableArr, typeId) >= 0);
     }
 
     public void processEvent(PlayerInteractEvent e) {

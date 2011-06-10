@@ -50,6 +50,7 @@ Notes:
  */
 
 def defaultMaxOwned = 3
+def defaultMaxArea = 1024
 
 
 def playerPlot(player, Closure c) {
@@ -117,13 +118,16 @@ def plotRemove = { GroovyRunner r, List args ->
 
 def plotSet = { GroovyRunner r, List args ->
     def setWhat = args ? args.remove(0) : '?'
+    if (setWhat.contains('-'))
+        setWhat = setWhat.split('-').eachWithIndex{it,idx->idx>0?it.capitalize():it}.join('')
+
     playerPlot(r.player) { plot ->
         if (plot.hasProperty(setWhat)) {
-            plot."$setWhat" = args[0] == 'on'
+            plot."$setWhat" = args[0]?.toLowerCase() == 'on'
             "Plot '$plot.name' $setWhat is ${plot."$setWhat" ? 'on' : 'off'}"
         }
         else {
-            "try open,${plot.properties.collect {k, v -> k.startsWith('no') ? k : null}.findAll{it}.join(',')}"
+            "Try: open,${plot.properties.collect {k, v -> k.startsWith('no') ? k : null}.findAll{it}.join(',')}"
         }
     }
 }
@@ -173,7 +177,8 @@ def plotCreate = { GroovyRunner r, List args ->
     if (!r.plots().findPlot(corner2)?.public) return "You cannot create plot inside another plot"
 
     def a = r.area(corner1, corner2)
-    if (a.size > 1024 && !r.player.op && r.player.name != GroovyPlugin.GROOVY_GOD) return "You cannot create a plot of this size"
+    def maxArea = r.data.plotMaxArea ?: r.global.plotMaxArea ?: defaultMaxArea
+    if (a.size > maxArea && !r.player.op && r.player.name != GroovyPlugin.GROOVY_GOD) return "You cannot create a plot of this size"
 
     if (r.plots().createPlot(plot_name, a, r.world))
         "Plot '$plot_name' created $a (use '/plot claim' to claim)"
@@ -185,7 +190,7 @@ def plotCreate = { GroovyRunner r, List args ->
 command 'plot', { GroovyRunner r, List args ->
     def msgs = []
     if (args) switch (args.remove(0)) {
-        case 'list': return r.plots().plots.values().name.toString()
+        case 'list': return r.plots().plots.values().toString()
 
         case 'claim': return plotClaim(r)
         case 'release': return plotRelease(r)
@@ -195,9 +200,13 @@ command 'plot', { GroovyRunner r, List args ->
         case 'remove': return plotRemove(r, args)
 
         case 'set': return plotSet(r, args)
+
         case 'place': return plotBlockInteract(r, 'placeable', args)
+        case 'no-place': return plotBlockInteract(r, 'unplaceable', args)
         case 'break': return plotBlockInteract(r, 'breakable', args)
+        case 'no-break': return plotBlockInteract(r, 'unbreakable', args)
         case 'interact': return plotBlockInteract(r, 'interactable', args)
+        case 'no-interact': return plotBlockInteract(r, 'uninteractable', args)
 
         case 'corner': return plotCorner(r)
         case 'create': return plotCreate(r, args)
@@ -205,15 +214,15 @@ command 'plot', { GroovyRunner r, List args ->
         default:
             msgs << "/plot  :show info about current plot"
             msgs << "/plot list  :list all plots"
+            msgs << "/plot corner  :record location as corner for a new plot"
+            msgs << "/plot create NAME  :create new plot using corner and here"
             msgs << "/plot claim  :claim the current plot"
             msgs << "/plot release  :release claim on current plot"
-            msgs << "/plot invite USERS  :invite users to work on the plot"
-            msgs << "/plot remove USERS  :remove users from working on the plot"
+            msgs << "/plot invite|remove USERS  :invite users to work on the plot"
             msgs << "/plot home  :set the home location of this plot (for warp)"
-            msgs << "/plot set X ON|OFF  :set plot property ON or OFF"
-            msgs << "/plot place|break|interact [-]ID  :permit/deny public action"
-            msgs << "/plot corner  :record corner for new plot"
-            msgs << "/plot create NAME  :create plot using corner and here"
+            msgs << "/plot set X ON|OFF  :set plot setting ON or OFF"
+            msgs << "/plot place|break|interact [-]IDs  :permit public action"
+            msgs << "/plot no-place|no-break|no-interact [-]IDs  :deny visitor action"
             break
     }
     // no args...
@@ -225,20 +234,24 @@ command 'plot', { GroovyRunner r, List args ->
             msgs << "Owner: ${plot.owner ?: 'unclaimed'} ${p(plot.owner)?.online ? '(online)' : '(offline)'}"
         }
         def tmp = plot.visitors
-        if (tmp)
-            msgs << "Visitors: $tmp"
-        tmp = plot.properties.collect {k, v -> k.startsWith('no') && v ? k : null}.findAll {it}.join(',')
-        if (tmp)
-            msgs << "Settings: $tmp"
-        tmp = plot.placeable.sort().join(',')
-        if (tmp)
-            msgs << "Placeable: $tmp"
-        tmp = plot.breakable.sort().join(',')
-        if (tmp)
-            msgs << "Breakable: $tmp"
-        tmp = plot.interactable.sort().join(',')
-        if (tmp)
-            msgs << "Interactable: $tmp"
+        if (tmp) msgs << "Visitors: $tmp"
+
+        if (!plot.owner || r.player.name == plot.owner) {
+            tmp = plot.properties.collect {k, v -> k.startsWith('no') && v ? k : null}.findAll {it}.join(',')
+            if (tmp) msgs << "Settings: $tmp"
+            msgs << "Depth: $plot.startDepth"
+            ['placeable','breakable','interactable'].each {
+                tmp = plot."$it".sort().join(',')
+                if (tmp) msgs << "${it.capitalize() }: $tmp"
+            }
+        }
+
+        if (plot.allowed(r.player)) {
+            ['unplaceable', 'unbreakable', 'uninteractable'].each {
+                tmp = plot."$it".sort().join(',')
+                if (tmp) msgs << "${it.capitalize() }: $tmp"
+            }
+        }
     }
     if (plot) msgs << "You are ${plot.allowed(r.player) ? '' : 'not '}allowed to work here"
 
