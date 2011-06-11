@@ -50,7 +50,7 @@ Notes:
  */
 
 def defaultMaxOwned = 3
-def defaultMaxArea = 1024
+def defaultMaxArea = 4096
 
 
 def playerPlot(player, Closure c) {
@@ -177,8 +177,13 @@ def plotCreate = { GroovyRunner r, List args ->
     if (!r.plots().findPlot(corner2)?.public) return "You cannot create plot inside another plot"
 
     def a = r.area(corner1, corner2)
-    def maxArea = r.data.plotMaxArea ?: r.global.plotMaxArea ?: defaultMaxArea
-    if (a.size > maxArea && !r.player.op && r.player.name != GroovyPlugin.GROOVY_GOD) return "You cannot create a plot of this size"
+    def distFromSpawn = Math.min(r.dist(corner1,r.world.spawnLocation), r.dist(corner2,r.world.spawnLocation))
+    def maxArea = r.data.plotMaxArea
+    if (!maxArea) {
+        maxArea = (int) (255.0 * Math.pow(1.0065, distFromSpawn))
+        if (maxArea > defaultMaxArea) maxArea = defaultMaxArea
+    }
+    if (a.size > maxArea && !r.player.op && r.player.name != GroovyPlugin.GROOVY_GOD) return "You cannot create a plot of this size ($a.size>$maxArea)"
 
     if (r.plots().createPlot(plot_name, a, r.world))
         "Plot '$plot_name' created $a (use '/plot claim' to claim)"
