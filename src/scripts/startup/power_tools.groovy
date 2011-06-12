@@ -51,6 +51,7 @@ class PowerToolsConst {
             Material.CHEST,
             Material.WORKBENCH,
             Material.FURNACE,
+            Material.DISPENSER,
             Material.WALL_SIGN,
             Material.SIGN_POST
     ]

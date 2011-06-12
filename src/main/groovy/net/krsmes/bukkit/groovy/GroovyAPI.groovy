@@ -242,6 +242,13 @@ class GroovyAPI {
 	}
 
 
+    static blockEach(def loc, int dist, Closure c) {
+    }
+
+    static blockEach(World world, def min, def max, Closure c) {
+    }
+
+
 	static def dist(def from, def to) {
 		from = v(from)
 		to = v(to)

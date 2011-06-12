@@ -128,7 +128,6 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
     public void onDisable() {
         enabled = false;
-        instance = null;
         try {
             // cancel scheduled tasks
             getServer().getScheduler().cancelTasks(this);
@@ -158,6 +157,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
             GroovyBukkitMetaClasses.disable();
 
+            instance = null;
             LOG.info(getDescription().getName() + ' ' + getDescription().getVersion() + " disabled");
         }
         catch (Exception e) {
@@ -176,7 +176,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
                 if ("g".equals(cmdName)) {
                     Object result = command_g(player, args);
                     if (result != null) {
-                        sender.sendMessage(result.toString());
+                        sender.sendMessage(Eval.x(result, "x.toString()").toString());
                     }
                     return true;
                 }

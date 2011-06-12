@@ -5,6 +5,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
@@ -296,8 +297,19 @@ public class Plots implements EventExecutor, Listener {
 
 
     protected void processEvent(Plot firstCheck, BlockDamageEvent e) {
-        Block block = e.getBlock();
+        final Block block = e.getBlock();
         findPlot(firstCheck, block.getX(), block.getZ()).processEvent(e);
+        if (e.isCancelled() && block.getState() instanceof Sign) {
+            // send block update on signs so the text is restored
+            plugin.getServer().getScheduler().scheduleAsyncDelayedTask(plugin,
+                new Runnable() {
+                    public void run() {
+                        block.getState().update();
+                    }
+                },
+                50
+            );
+        }
     }
 
 

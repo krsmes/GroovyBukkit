@@ -64,7 +64,7 @@ listen "debug", [
     (Event.Type.SERVER_COMMAND):        { ServerCommandEvent it     -> log "$it.eventName: " },
 
 	(Event.Type.CHUNK_GENERATION):      { log "$it.eventName" },
-	(Event.Type.ITEM_SPAWN):            { log "$it.eventName" },
+	(Event.Type.ITEM_SPAWN):            { ItemSpawnEvent it         -> log "$it.eventName: location=${locstr(it.location)},${locstr(it.entity.location)}, itemStack=${itmstr(it.entity.itemStack)}" },
 	(Event.Type.SPAWN_CHANGE):          { SpawnChangeEvent it       -> log "$it.eventName: previousLocation=${locstr(it.previousLocation)}" },
 	(Event.Type.WORLD_SAVE):            { WorldSaveEvent it         -> log "$it.eventName: $it.world" },
 	(Event.Type.WORLD_INIT):            { WorldInitEvent it         -> log "$it.eventName: $it.world" },
