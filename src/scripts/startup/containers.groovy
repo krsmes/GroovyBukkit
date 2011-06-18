@@ -22,11 +22,13 @@ def setupContainerSign = { GroovyRunner r, ContainerBlock container, Sign sign -
     def contents = container.inventory.contents
     switch (container.type) {
         case Material.DISPENSER:
-            sign.setLine(1, 'dispensing')
             def next = contents.find {it}
             if (next) {
-                sign.setLine(2, "$next.typeId")
-                sign.setLine(3, "$next.type")
+                if (sign.getLine(1) != 'dispensing') {
+                    sign.setLine(1, 'dispensing')
+                    sign.setLine(2, "${next.amount}x${next.typeId}")
+                    sign.setLine(3, "$next.type")
+                }
             }
             else {
                 sign.setLine(2, "(EMPTY)")
@@ -35,11 +37,15 @@ def setupContainerSign = { GroovyRunner r, ContainerBlock container, Sign sign -
             break
         case Material.CHEST:
             r.reg(container.block, 'captureItem')
-            sign.setLine(1, 'dropbox')
-            def accept = contents[0, 9, 18].findAll {it}.typeId.join(',')
-            if (accept) {
-                sign.setLine(2, 'accepting')
-                sign.setLine(3, accept)
+            def accept1 = contents[0,1].findAll {it}.collect{it.amount + 'x' + it.typeId}.join(' ')
+            def accept2 = contents[2,3].findAll {it}.collect{it.amount + 'x' + it.typeId}.join(' ')
+            if (accept1) {
+                sign.setLine(1, 'accepting')
+                sign.setLine(2, accept1)
+                sign.setLine(3, accept2)
+            }
+            else {
+                sign.setLine(1, 'dropbox')
             }
             break
     }
@@ -48,28 +54,41 @@ def setupContainerSign = { GroovyRunner r, ContainerBlock container, Sign sign -
 
 
 def captureItemInContainer = { ContainerBlock container, Item item ->
+    if (item.dead) return false
     def itemStack = item.itemStack
-    def dropinbox = false
+    def dispense = false
     container.block.findAttached { it.type == Material.WALL_SIGN }?.with {
-        def accept = state.getLine(3)
-        def acceptIds = accept ? accept.split(',')*.toInteger() : []
-        dropinbox = !acceptIds || (itemStack.typeId in acceptIds)
-    }
-    if (dropinbox) {
-        container.inventory.addItem(itemStack)
-        container.block.findAllAttached { it.type == Material.DISPENSER }.each {
-            approvedDispense.add(it)
-            it.state.dispense()
-            approvedDispense.remove(it)
+        def l1 = state.getLine(2)
+        def l2 = state.getLine(3)
+        def accept = ((l1?.split(' ') as List) + (l2?.split(' ') as List)).findAll {it}.collectEntries {(it.split('x') as List).reverse()}
+        if (accept) {
+            accept.find{it.key.toInteger()==itemStack.typeId}?.with {
+                dispense = (int) itemStack.amount / value.toInteger()
+            }
         }
-        item.remove()
     }
-    dropinbox
+    if (dispense) {
+        container.inventory.addItem(itemStack)
+        item.remove()
+        container.block.findAllAttached { it.type == Material.DISPENSER }.each { dispenser ->
+            approvedDispense.add(dispenser)
+            def multiplier = 1
+            dispenser.findAttached { it.type == Material.WALL_SIGN }?.with {
+                def dispenseInfo = state.getLine(2)?.split('x')
+                if (dispenseInfo) multiplier = dispenseInfo[0]?.toInteger()
+            }
+            (dispense * multiplier).times { dispenser.state.dispense() }
+            approvedDispense.remove(dispenser)
+        }
+    }
+    dispense
 }
 
 // register 'captureItem' closure to be used with container blocks
 reg('captureItem') { GroovyRunner r, Block blk ->
-    r.e(blk, 2, 'item').each { captureItemInContainer(blk.state, it) }
+    r.e(blk, 2, 'item').each {
+        captureItemInContainer(blk.state, it)
+    }
 }
 
 
@@ -97,7 +116,7 @@ reg('captureItem') { GroovyRunner r, Block blk ->
         }
     },
 
-    (Event.Type.BLOCK_DAMAGE): { BlockDamageEvent e ->
+    (Event.Type.BLOCK_DAMAGE): { GroovyRunner r, BlockDamageEvent e ->
         def block = e.block
         if (block.state instanceof ContainerBlock) {
             // don't allow containers with attached signs to be destroyed except by player on sign
@@ -110,27 +129,27 @@ reg('captureItem') { GroovyRunner r, Block blk ->
             e.cancelled = (e.player.name != block.state.getLine(0))
             if (e.cancelled) {
                 // send block update on signs so the text is restored
-                future 50, { block.state.update() }
+                r.future 50, { block.state.update() }
             }
         }
     },
 
-    (Event.Type.BLOCK_DISPENSE): { BlockDispenseEvent e ->
+    (Event.Type.BLOCK_DISPENSE): { GroovyRunner r, BlockDispenseEvent e ->
         def block = e.block
         def sign = block.findAttached { it.type == Material.WALL_SIGN }
         if (sign) {
             // if sign on dispenser, only dispense 'approvedDispense' (from item being dropped in container)
             // this prevents a button being placed nearby and stealing the contents
             if (block in approvedDispense) {
-                future 20, { setupContainerSign(block.state, sign.state) }
+                r.future(20) { setupContainerSign(r, block.state, sign.state) }
             }
             else e.cancelled = true
         }
     },
 
-    (Event.Type.ITEM_SPAWN): { ItemSpawnEvent e ->
+    (Event.Type.ITEM_SPAWN): { GroovyRunner r, ItemSpawnEvent e ->
         def ent = e.entity
-        future 20, {
+        r.future 5, {
             ent.location.findBlock(1) { it.type == Material.CHEST }?.with {
                 captureItemInContainer(it.state, ent)
             }

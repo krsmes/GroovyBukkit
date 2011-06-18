@@ -130,9 +130,6 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     public void onDisable() {
         enabled = false;
         try {
-            // cancel scheduled tasks
-            getServer().getScheduler().cancelTasks(this);
-
             // save all data
             onSave();
 
@@ -140,6 +137,9 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             Events.disable();
             BlockClosures.disable();
             ListenerClosures.disable();
+
+            // cancel scheduled tasks
+            getServer().getScheduler().cancelTasks(instance);
 
             // shutdown runners for current players
             for (GroovyRunner r : playerRunners.values()) {

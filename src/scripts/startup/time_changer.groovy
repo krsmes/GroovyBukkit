@@ -1,4 +1,6 @@
-command 't', { r, List args ->
+import net.krsmes.bukkit.groovy.GroovyRunner
+
+command 't', { GroovyRunner r, List args ->
     if (args) switch (args.remove(0)) {
         case 'sunrise':
             r.world.time = 22000
@@ -23,11 +25,11 @@ command 't', { r, List args ->
         case 'alwaysday':
             if (!args) return "Error: Specify 'on' or 'off'"
             if (args?.remove(0)?.toLowerCase() == 'off')
-                unlisten 'alwaysday'
+                r.unlisten 'alwaysday'
             else {
-                listen 'alwaysday', 'hour change', { if (it.hour == 13) it.world.time = 23000 }
+                r.listen 'alwaysday', 'hour change', { if (it.hour == 12) it.world.time = 0 }
                 r.world.time = 0
-                return "Morning of day ${Math.round(w.fullTime / 24000)}"
+                return "Morning of day ${Math.round(r.world.fullTime / 24000)}"
             }
     }
     "/t NAME : sunrise, morning, noon, sunset, night, alwaysday"

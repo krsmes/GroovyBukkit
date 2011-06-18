@@ -42,8 +42,10 @@ public class BlockClosures implements Runnable {
     }
 
     public synchronized void load(Map<String, Object> data) {
-        //noinspection unchecked
-        blockClosureList.addAll((Collection<? extends BlockClosure>) data.remove(ATTR_BLOCK_CLOSURES));
+        if (data.containsKey(ATTR_BLOCK_CLOSURES)) {
+            //noinspection unchecked
+            blockClosureList.addAll((Collection<? extends BlockClosure>) data.remove(ATTR_BLOCK_CLOSURES));
+        }
     }
 
     public synchronized void save(Map<String, Object> data) {

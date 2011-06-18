@@ -71,7 +71,7 @@ class GroovyAPI {
 		def e = world.entities
 		if (name) {
 			def cls = Class.forName("org.bukkit.entity.${name.capitalize()}")
-			e = e.findAll {cls.isInstance(it)}
+			e = e.findAll {cls.isInstance(it) && !it.dead}
 		}
         e
 	}
