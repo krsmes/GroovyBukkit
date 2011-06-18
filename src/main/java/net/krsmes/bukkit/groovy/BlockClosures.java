@@ -1,9 +1,7 @@
 package net.krsmes.bukkit.groovy;
 
 import groovy.lang.Closure;
-import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.event.Event;
 
 import java.util.*;
 import java.util.logging.Logger;
@@ -12,7 +10,9 @@ import java.util.logging.Logger;
 public class BlockClosures implements Runnable {
     static Logger LOG = Logger.getLogger("Minecraft");
 
+    public static final String ATTR_BLOCK_CLOSURES = "blockClosures";
     public static BlockClosures instance;
+    static final int PERIOD_TICKS = 100;
 
     GroovyPlugin plugin;
     int taskId;
@@ -41,12 +41,19 @@ public class BlockClosures implements Runnable {
         }
     }
 
-    public synchronized void load(Map<String, Object> global) {
-        // TODO !
+    public synchronized void load(Map<String, Object> data) {
+        //noinspection unchecked
+        blockClosureList.addAll((Collection<? extends BlockClosure>) data.remove(ATTR_BLOCK_CLOSURES));
     }
 
-    public synchronized void save(Map<String, Object> global) {
-        // TODO !
+    public synchronized void save(Map<String, Object> data) {
+        List<BlockClosure> blockClosures = new ArrayList<BlockClosure>();
+        for (BlockClosure bc : blockClosureList) {
+            if (bc.closure != null && bc.closureName != null) {
+                blockClosures.add(bc);
+            }
+        }
+        data.put(ATTR_BLOCK_CLOSURES, blockClosures);
     }
 
 
@@ -60,7 +67,7 @@ public class BlockClosures implements Runnable {
 
 
     protected void schedule() {
-        taskId = plugin.getServer().getScheduler().scheduleAsyncRepeatingTask(plugin, this, 50, 100);
+        taskId = plugin.getServer().getScheduler().scheduleAsyncRepeatingTask(plugin, this, 50, PERIOD_TICKS);
     }
 
 
@@ -95,70 +102,4 @@ public class BlockClosures implements Runnable {
         }
     }
 
-
-    static class BlockClosure {
-        World world;
-        int x;
-        int y;
-        int z;
-        int typeId;
-        String closureName;
-
-        transient Closure closure;
-        transient long triggerCount = 0;
-        transient long sleepCount = 0;
-
-        public BlockClosure() {}
-
-        public BlockClosure(Block block, String closureName, Closure closure) {
-            this.world = block.getWorld();
-            this.x = block.getX();
-            this.y = block.getY();
-            this.z = block.getZ();
-            this.typeId = block.getTypeId();
-            this.closureName = closureName;
-            this.closure = closure;
-        }
-
-        public boolean trigger(GroovyPlugin plugin) {
-            if (closure != null && --sleepCount < 0 && world.isChunkLoaded(x >> 4, z >> 4)) {
-                Block block = world.getBlockAt(x, y, z);
-                if (block.getTypeId() == typeId) {
-                    int paramCount = closure.getMaximumNumberOfParameters();
-                    Object result;
-                    // call closure
-                    if (paramCount == 3) {
-                        result = closure.call(plugin.getRunner(), block, triggerCount++);
-                    }
-                    else if (paramCount == 2) {
-                        result = closure.call(plugin.getRunner(), block);
-                    }
-                    else {
-                        result = closure.call(block);
-                    }
-                    // process result
-                    if (result instanceof Integer) {
-                        sleepCount = (Integer) result;
-                    }
-                    else if (result instanceof Event) {
-                        plugin.getServer().getPluginManager().callEvent((Event)result);
-                    }
-                    else if (result instanceof Boolean && !(Boolean)result) {
-                        // false returned, unregister
-                        return false;
-                    }
-                }
-                else {
-                    // typeId has changed, unregister
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        public boolean is(Block block) {
-            return world.equals(block.getWorld()) &&
-                    x == block.getX() && y == block.getY() && z == block.getZ();
-        }
-    }
 }

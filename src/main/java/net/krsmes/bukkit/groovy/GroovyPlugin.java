@@ -199,10 +199,10 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
         if (enabled) {
             switch (event.getType()) {
                 case PLAYER_COMMAND_PREPROCESS: onCommandPreprocess((PlayerCommandPreprocessEvent) event); break;
-                case WORLD_SAVE: onSave(); break;
                 case PLAYER_LOGIN: onLogin((PlayerLoginEvent) event); break;
                 case PLAYER_JOIN: onJoin((PlayerJoinEvent) event); break;
                 case PLAYER_QUIT: onQuit((PlayerQuitEvent) event); break;
+                case WORLD_SAVE: onSave(); break;
             }
         }
     }
@@ -285,7 +285,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             mgr.registerEvent(Event.Type.PLAYER_LOGIN, this, this, Event.Priority.Lowest, this);
             mgr.registerEvent(Event.Type.PLAYER_JOIN, this, this, Event.Priority.Low, this);
             mgr.registerEvent(Event.Type.PLAYER_QUIT, this, this, Event.Priority.Highest, this);
-            mgr.registerEvent(Event.Type.WORLD_SAVE, this, this, Event.Priority.High, this);
+            mgr.registerEvent(Event.Type.WORLD_SAVE, this, this, Event.Priority.Normal, this);
             registered = true;
         }
     }
@@ -353,6 +353,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
     /* WORLD_SAVE */
     protected void onSave() {
+        LOG.info(getDescription().getName() + ' ' + getDescription().getVersion() + " saving");
         try { getConfiguration().save(); } catch (Exception e) { LOG.warning("GroovyBukkit onSave() config failed: " + e.getMessage()); }
         Map<String, Object> data = savableData(global);
         ListenerClosures.instance.save(data);
