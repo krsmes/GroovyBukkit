@@ -15,10 +15,12 @@ import org.bukkit.Server
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.CreatureType
 import org.bukkit.TreeType
+import net.krsmes.bukkit.groovy.BlockClosures.BlockClosure
 
 class GroovyAPI {
 	static Logger _log = Logger.getLogger("Minecraft")
     static gdebug = false
+    static random = new Random()
 
 	World world
 	Server server
@@ -70,15 +72,19 @@ class GroovyAPI {
 		def e = world.entities
 		if (name) {
 			def cls = Class.forName("org.bukkit.entity.${name.capitalize()}")
-			e.findAll {cls.isInstance(it)}
+			e = e.findAll {cls.isInstance(it)}
 		}
-		else {
-			e
-		}
+        e
 	}
 
 
-	void msg(def players, Object... args) {
+    List e(def loc, double distance = 16.0, String name = null) {
+        loc = l(loc)
+        e(name).findAll { dist(loc,it) <= distance }
+    }
+
+
+    void msg(def players, Object... args) {
 		def to = []
 		if (players instanceof String) to << p(players)
 		if (players instanceof List) players.each {
@@ -276,14 +282,20 @@ class GroovyAPI {
         new Area(loc1, loc2)
     }
 
-    // to be deleted
-    /** @deprecated */
-    static Plot plot(Map attrs) {
-        (attrs.name == PublicPlot.PUBLIC_PLOT_NAME) ? new PublicPlot(attrs) : new Plot(attrs)
-    }
-
     static Plots plots() {
         Plots.instance
+    }
+
+    static reg(String name, Closure c) {
+        BlockClosures.instance.registerClosure(name, c)
+    }
+
+    static reg(Block b, c) {
+        BlockClosures.instance.registerBlock(b, c)
+    }
+
+    static unreg(Block b) {
+        BlockClosures.instance.unregisterBlock(b)
     }
 
 
@@ -291,6 +303,17 @@ class GroovyAPI {
 // helper methods
 //
 
+    static int rnd(int i) {
+        random.nextInt(i)
+    }
+
+    static double rnd(double d) {
+        random.nextDouble() * d
+    }
+
+    static boolean rndbool() {
+        random.nextBoolean()
+    }
 
 	static def stringToType(s) {
 		s.toString().toUpperCase().replaceAll(/[\s\.\-]/, '_')

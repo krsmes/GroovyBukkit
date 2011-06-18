@@ -103,7 +103,8 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             runner = new GroovyRunner(this, global);
 
             ListenerClosures.enable(this).load(global);
-            Events.enable(this).save(global);
+            BlockClosures.enable(this).load(global);
+            Events.enable(this).load(global);
             Plots.enable(this).load(global);
 
             runner._init();
@@ -135,9 +136,10 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
             // save all data
             onSave();
 
-            ListenerClosures.disable();
-            Events.disable();
             Plots.disable();
+            Events.disable();
+            BlockClosures.disable();
+            ListenerClosures.disable();
 
             // shutdown runners for current players
             for (GroovyRunner r : playerRunners.values()) {
@@ -354,6 +356,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
         try { getConfiguration().save(); } catch (Exception e) { LOG.warning("GroovyBukkit onSave() config failed: " + e.getMessage()); }
         Map<String, Object> data = savableData(global);
         ListenerClosures.instance.save(data);
+        BlockClosures.instance.save(data);
         Events.instance.save(data);
         Plots.instance.save(data);
         try { saveData(data); } catch (Exception e) { LOG.warning("GroovyBukkit onSave() global failed: " + e.getMessage()); }

@@ -72,7 +72,7 @@ public class Events implements Runnable {
 
 
     protected void schedule() {
-        taskId = plugin.getServer().getScheduler().scheduleAsyncRepeatingTask(plugin, this, 50, 50);
+        taskId = plugin.getServer().getScheduler().scheduleAsyncRepeatingTask(plugin, this, 50, 100);
     }
 
 
