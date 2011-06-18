@@ -67,7 +67,7 @@ def captureItemInContainer = { ContainerBlock container, Item item ->
     dropinbox
 }
 
-
+// register 'captureItem' closure to be used with container blocks
 reg('captureItem') { GroovyRunner r, Block blk ->
     r.e(blk, 2, 'item').each { captureItemInContainer(blk.state, it) }
 }

@@ -70,8 +70,19 @@ class GroovyPlayerRunner extends GroovyRunner {
 		player.inventory.setItem(pos, i(item, qty))
 	}
 
+    def switchInv(String invName = 'default') {
+        def invCurrent = player.data.inventory ?: 'default'
+        def inventories = player.data.inventories ?: [:]
+        if (invName != invCurrent) {
+            inventories[invCurrent] = player.inventory.toString()
+            player.inventory.fromString(inventories[invName])
+            player.data.inventory = invName
+            player.data.inventories = inventories
+        }
+        invCurrent
+    }
 
-	void give(def item, int qty = 1) {
+    void give(def item, int qty = 1) {
 		give(player, item, qty)
 	}
 

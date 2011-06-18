@@ -14,6 +14,7 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.util.Vector
 import org.bukkit.inventory.ItemStack
 import org.bukkit.craftbukkit.inventory.CraftInventory
+import org.bukkit.craftbukkit.entity.CraftPlayer
 
 
 class GroovyBukkitMetaClasses
@@ -97,13 +98,13 @@ class GroovyBukkitMetaClasses
 		HumanEntity.metaClass.asType = { Class c ->
 			if (c == Vector.class) return new Vector(delegate.location.x, delegate.location.y, delegate.location.z)
 		}
-		Player.metaClass.asType = { Class c ->
+		CraftPlayer.metaClass.asType = { Class c ->
 			if (c == Vector.class) return new Vector(delegate.location.x, delegate.location.y, delegate.location.z)
 		}
-        Player.metaClass.getRunner = { ->
+        CraftPlayer.metaClass.getRunner = { ->
             GroovyPlugin.instance?.getRunner((Player)delegate)
         }
-        Player.metaClass.getData = { ->
+        CraftPlayer.metaClass.getData = { ->
             GroovyPlugin.instance?.getData((Player)delegate)
         }
 
@@ -192,16 +193,19 @@ class GroovyBukkitMetaClasses
 		Inventory.metaClass.leftShift = { def is -> delegate.addItem(is) }
 		Inventory.metaClass.rightShift = { def is -> delegate.removeItem(is) }
         Inventory.metaClass.asType = { Class c ->
-			if (c == List.class) return delegate.contents.toList().findAll{it}
+			if (c == List.class) return delegate.contents.toList()//.findAll{it}
 		}
         Inventory.metaClass.toString = {->
-            'Inv[' + (delegate as List)*.toString().join(';') + ']'
+            'Inv[' + (delegate as List).collect{it?it.toString():''}.join(';') + ']'
         }
         Inventory.metaClass.fromString = { String str ->
-            if (str.startsWith('Inv[')) str = str[4..-2]
-            def items = str.split(';').collect{ItemStack.fromString(it)}
-            while (items.size() < delegate.size) items << null
-            delegate.contents = items.toArray(new ItemStack[items.size()])
+            if (str) {
+                if (str.startsWith('Inv[')) str = str[4..-2]
+                def items = str.split(';').collect{ItemStack.fromString(it)}
+                while (items.size() < delegate.size) items << null
+                delegate.contents = items.toArray(new ItemStack[items.size()])
+            }
+            else delegate.clear()
         }
 
 	}

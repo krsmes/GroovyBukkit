@@ -357,10 +357,17 @@ public class Plots implements EventExecutor, Listener {
 
 
     protected boolean plotChange(Player p, Plot from, Plot to) {
-        PluginManager mgr = plugin.getServer().getPluginManager();
-        PlotChangeEvent pce = new PlotChangeEvent(p, from, to);
-        mgr.callEvent(pce);
-        return !pce.isCancelled();
+        if ((from == null || from.allowDeparture(p)) && (to == null || to.allowArrival(p))) {
+            PluginManager mgr = plugin.getServer().getPluginManager();
+            PlotChangeEvent pce = new PlotChangeEvent(p, from, to);
+            mgr.callEvent(pce);
+            if (!pce.isCancelled()) {
+                if (from != null) { from.depart(p); }
+                if (to != null) { to.arrive(p); }
+                return true;
+            }
+        }
+        return false;
     }
 
 

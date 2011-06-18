@@ -55,7 +55,7 @@ class GroovyBukkitMetaClassesTest {
     @Test
     void checkInventoryMetaClass() {
         def ci = new CraftInventory(new TileEntityChest())
-        assert ci.toString() == "Inv[]"
+        assert ci.toString() == "Inv[;;;;;;;;;;;;;;;;;;;;;;;;;;]"
 
         def i1 = new ItemStack(3, 2)
         def i2 = new ItemStack(1, 64)
@@ -64,12 +64,12 @@ class GroovyBukkitMetaClassesTest {
         assert ci[0] == i1
         ci[1] = i2
         def list = ci as List
-        assert list == [i1, i2]
-        assert ci.toString() == 'Inv[Stk[type=3,data=0,qty=2];Stk[type=1,data=0,qty=64]]'
+        assert list.findAll{it} == [i1, i2]
+        assert ci.toString() == 'Inv[Stk[type=3,data=0,qty=2];Stk[type=1,data=0,qty=64];;;;;;;;;;;;;;;;;;;;;;;;;]'
 
         ci = new CraftInventory(new TileEntityChest())
         ci.fromString('Inv[Stk[type=3,data=0,qty=2];Stk[type=1,data=0,qty=64]]')
         list = ci as List
-        assert list == [i1, i2]
+        assert list.findAll{it} == [i1, i2]
     }
 }

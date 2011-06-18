@@ -1,5 +1,6 @@
 package net.krsmes.bukkit.groovy;
 
+import groovy.util.Eval;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -36,6 +37,8 @@ public class Plot implements Serializable {
     boolean noLightning;
     boolean noIgnite;
     boolean noDamage;
+    boolean noEntry;
+    boolean noInv;
 
     int[] placeableArr = new int[0];
     int[] breakableArr = new int[0];
@@ -195,6 +198,22 @@ public class Plot implements Serializable {
         this.noDamage = noDamage;
     }
 
+    public boolean isNoEntry() {
+        return noEntry;
+    }
+
+    public void setNoEntry(boolean noEntry) {
+        this.noEntry = noEntry;
+    }
+
+    public boolean isNoInv() {
+        return noInv;
+    }
+
+    public void setNoInv(boolean noInv) {
+        this.noInv = noInv;
+    }
+
     public Set<Integer> getPlaceable() {
         return intArrToSet(placeableArr);
     }
@@ -283,6 +302,26 @@ public class Plot implements Serializable {
 
     public boolean allowed(Player player) {
         return open || allowed(player.getName());
+    }
+
+    public boolean allowArrival(Player player) {
+        return !noEntry || allowed(player);
+    }
+
+    public boolean allowDeparture(Player player) {
+        return true;
+    }
+
+    public void arrive(Player player) {
+        if (noInv) {
+            Eval.xy(player, name, "x.runner.switchInv(y)");
+        }
+    }
+
+    public void depart(Player player) {
+        if (noInv) {
+            Eval.x(player, "x.runner.switchInv()");
+        }
     }
 
     public boolean contains(int x, int z) {

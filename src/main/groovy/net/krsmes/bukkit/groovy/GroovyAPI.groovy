@@ -15,7 +15,6 @@ import org.bukkit.Server
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.CreatureType
 import org.bukkit.TreeType
-import net.krsmes.bukkit.groovy.BlockClosures.BlockClosure
 
 class GroovyAPI {
 	static Logger _log = Logger.getLogger("Minecraft")
@@ -113,22 +112,22 @@ class GroovyAPI {
     }
 
 
-    def drop(def loc, def item) {
+    def drop(def loc, def item, int qty = 1) {
         loc = l(loc)
-        item = i(item)
+        item = i(item, qty)
         world.dropItem(loc, item)
     }
 
 
-    def tree(def loc, def type) {
+    def tree(def loc, def type = TreeType.TREE) {
         loc = l(loc)
         world.generateTree(loc, type as TreeType)
     }
 
 
-    def explosion(def loc, float power = 4.0) {
+    def explosion(def loc, float power = 4.0, boolean fire = false) {
         loc = l(loc)
-        world.createExplosion(loc.x, loc.y, loc.z, power)
+        world.createExplosion(loc.x, loc.y, loc.z, power, fire)
     }
 
 
