@@ -52,9 +52,7 @@ def captureItemInContainer = { ContainerBlock container, Item item ->
     def itemStack = item.itemStack
     def dispense = 0
     def acceptTypes = container.block.findAllAttached { it.type == Material.WALL_SIGN }?.collectEntries { signBlock ->
-        println "signBlock: $signBlock"
         def accept = signBlock.state.getLine(2)?.split('x')
-        println "accept: $accept"
         accept.length==2 ? [(accept[1]):accept[0]] : [:]
     }
     if (acceptTypes) {
@@ -66,7 +64,6 @@ def captureItemInContainer = { ContainerBlock container, Item item ->
         }
     }
     else {
-        println "accept anything"
         // accept anything
         dispense = 1
     }
