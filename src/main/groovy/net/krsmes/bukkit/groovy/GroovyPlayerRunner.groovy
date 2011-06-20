@@ -70,6 +70,7 @@ class GroovyPlayerRunner extends GroovyRunner {
 		player.inventory.setItem(pos, i(item, qty))
 	}
 
+
     def switchInv(String invName = 'default') {
         def invCurrent = player.data.inventory ?: 'default'
         def inventories = player.data.inventories ?: [:]
@@ -81,6 +82,12 @@ class GroovyPlayerRunner extends GroovyRunner {
         }
         invCurrent
     }
+
+
+    def make(def thing, int qty = 1) {
+        make(lookingat(player), thing, qty)
+    }
+
 
     void give(def item, int qty = 1) {
 		give(player, item, qty)

@@ -88,7 +88,10 @@ public class BlockClosures implements Runnable {
 
 
     public void registerBlock(Block block, String closureName) {
-        blockClosureList.add(new BlockClosure(block, closureName, registeredClosures.get(closureName)));
+        BlockClosure bc = new BlockClosure(block, closureName, registeredClosures.get(closureName));
+        if (!blockClosureList.contains(bc)) {
+            blockClosureList.add(bc);
+        }
     }
 
     /* note: this form will not persist between reloads */

@@ -103,12 +103,32 @@ class GroovyAPI {
         (Player) result
 	}
 
-
-    def spawn(String name, def loc, int qty = 1) {
+    // this can spawn just about anything, give a creaturetype, entity class, material, itemstack, or string representing one of those
+    def make(def loc, def thing, int qty = 1) {
         loc = l(loc)
-        CreatureType creatureType = CreatureType."${stringToType(name)}"
-        def ents = (1..qty).collect { world.spawnCreature(loc, creatureType) }
-        ents ? ents.size() > 1 ? ents : ents[0] : null
+        println "make($loc, $thing, $qty)"
+        if (thing instanceof CreatureType || thing instanceof Class) { /* no-op */ }
+        else if (thing instanceof Number || thing instanceof Material || thing instanceof Block || thing instanceof Location)
+            thing = i(thing, qty)
+        else if (Entity.isInstance(thing))
+            thing = thing.class
+        else {
+            thing = thing.toString().capitalize()
+            println "make(): thing='$thing'"
+            def temp = CreatureType.fromName(thing)
+            if (temp) thing = temp
+            else
+                try { thing = thing.toUpperCase() as CreatureType }
+                catch (e1) {
+                    try { thing = ('org.bukkit.entity.' + thing) as Class }
+                    catch (e2) { thing = i(thing, qty) }
+                }
+        }
+        println "make(): thing(${thing.class})=$thing"
+        // make it (will always return list of entities)
+        if (thing instanceof ItemStack) [world.dropItem(loc, thing)]
+        else if (thing instanceof CreatureType) (1..qty).collect {world.spawnCreature(loc, thing)}
+        else if (thing instanceof Class) (1..qty).collect {world.spawn(loc, thing)}
     }
 
 

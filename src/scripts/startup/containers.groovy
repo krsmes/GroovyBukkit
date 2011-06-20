@@ -10,10 +10,7 @@ import org.bukkit.event.block.BlockDamageEvent
 import org.bukkit.block.Block
 import org.bukkit.event.entity.ItemSpawnEvent
 import org.bukkit.event.block.BlockDispenseEvent
-import org.bukkit.block.BlockState
-import org.bukkit.inventory.ItemStack
 import org.bukkit.entity.Item
-import groovy.transform.Field
 import net.krsmes.bukkit.groovy.GroovyRunner
 
 def approvedDispense = []
@@ -37,15 +34,12 @@ def setupContainerSign = { GroovyRunner r, ContainerBlock container, Sign sign -
             break
         case Material.CHEST:
             r.reg(container.block, 'captureItem')
-            def accept1 = contents[0,1].findAll {it}.collect{it.amount + 'x' + it.typeId}.join(' ')
-            def accept2 = contents[2,3].findAll {it}.collect{it.amount + 'x' + it.typeId}.join(' ')
-            if (accept1) {
+            // one item per sign (meaning, up to 4)
+            def signNum = container.block.findAllAttached{it.type==Material.WALL_SIGN}.size() - 1  // include sign being configured
+            contents[signNum]?.with {
                 sign.setLine(1, 'accepting')
-                sign.setLine(2, accept1)
-                sign.setLine(3, accept2)
-            }
-            else {
-                sign.setLine(1, 'dropbox')
+                sign.setLine(2, "${amount}x${typeId}")
+                sign.setLine(3, "$type")
             }
             break
     }
@@ -56,20 +50,31 @@ def setupContainerSign = { GroovyRunner r, ContainerBlock container, Sign sign -
 def captureItemInContainer = { ContainerBlock container, Item item ->
     if (item.dead) return false
     def itemStack = item.itemStack
-    def dispense = false
-    container.block.findAttached { it.type == Material.WALL_SIGN }?.with {
-        def l1 = state.getLine(2)
-        def l2 = state.getLine(3)
-        def accept = ((l1?.split(' ') as List) + (l2?.split(' ') as List)).findAll {it}.collectEntries {(it.split('x') as List).reverse()}
-        if (accept) {
-            accept.find{it.key.toInteger()==itemStack.typeId}?.with {
-                dispense = (int) itemStack.amount / value.toInteger()
-            }
+    def dispense = 0
+    def acceptTypes = container.block.findAllAttached { it.type == Material.WALL_SIGN }?.collectEntries { signBlock ->
+        println "signBlock: $signBlock"
+        def accept = signBlock.state.getLine(2)?.split('x')
+        println "accept: $accept"
+        accept.length==2 ? [(accept[1]):accept[0]] : [:]
+    }
+    if (acceptTypes) {
+        println "acceptType: $acceptTypes"
+        // see if item is of acceptable type
+        acceptTypes.find {it.key.toInteger() == itemStack.typeId}?.with {
+            // calculate dispense count
+            dispense = (int) itemStack.amount / value.toInteger()
         }
     }
+    else {
+        println "accept anything"
+        // accept anything
+        dispense = 1
+    }
     if (dispense) {
+        // capture item
         container.inventory.addItem(itemStack)
         item.remove()
+        // trigger dispensers
         container.block.findAllAttached { it.type == Material.DISPENSER }.each { dispenser ->
             approvedDispense.add(dispenser)
             def multiplier = 1
