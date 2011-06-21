@@ -104,9 +104,8 @@ class GroovyAPI {
 	}
 
     // this can spawn just about anything, give a creaturetype, entity class, material, itemstack, or string representing one of those
-    def make(def loc, def thing, int qty = 1) {
+    def make(def loc, def thing, int qty = 1, Closure c = null) {
         loc = l(loc)
-        println "make($loc, $thing, $qty)"
         if (thing instanceof CreatureType || thing instanceof Class) { /* no-op */ }
         else if (thing instanceof Number || thing instanceof Material || thing instanceof Block || thing instanceof Location)
             thing = i(thing, qty)
@@ -114,7 +113,6 @@ class GroovyAPI {
             thing = thing.class
         else {
             thing = thing.toString().capitalize()
-            println "make(): thing='$thing'"
             def temp = CreatureType.fromName(thing)
             if (temp) thing = temp
             else
@@ -124,11 +122,22 @@ class GroovyAPI {
                     catch (e2) { thing = i(thing, qty) }
                 }
         }
-        println "make(): thing(${thing.class})=$thing"
         // make it (will always return list of entities)
-        if (thing instanceof ItemStack) [world.dropItem(loc, thing)]
-        else if (thing instanceof CreatureType) (1..qty).collect {world.spawnCreature(loc, thing)}
-        else if (thing instanceof Class) (1..qty).collect {world.spawn(loc, thing)}
+        if (thing instanceof ItemStack) {
+            def ent = world.dropItem(loc, thing)
+            if (c) c(ent)
+            [ent]
+        }
+        else if (thing instanceof CreatureType) (1..qty).collect {
+            def ent = world.spawnCreature(loc, thing)
+            if (c) c(ent)
+            ent
+        }
+        else if (thing instanceof Class) (1..qty).collect {
+            def ent = world.spawn(loc, thing)
+            if (c) c(ent)
+            ent
+        }
     }
 
 
