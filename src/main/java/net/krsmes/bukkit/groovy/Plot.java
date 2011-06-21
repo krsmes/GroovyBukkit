@@ -3,7 +3,6 @@ package net.krsmes.bukkit.groovy;
 import groovy.util.Eval;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.block.BlockDamageEvent;
@@ -296,14 +295,6 @@ public class Plot implements Serializable {
         removeVisitor(player.getName());
     }
 
-    public boolean allowed(String name) {
-        return open || name.equals(owner) || visitors.contains(name);
-    }
-
-    public boolean allowed(Player player) {
-        return open || allowed(player.getName());
-    }
-
     public boolean allowArrival(Player player) {
         return !noEntry || allowed(player);
     }
@@ -331,37 +322,53 @@ public class Plot implements Serializable {
         return false;
     }
 
-    public boolean allowDamage(Player player, Block block) {
-        // assumes plot contains block.x and block.z
-        int typeId = block.getTypeId();
-        return (block.getY() < startDepth ||
-                (allowed(player)) && Arrays.binarySearch(unbreakableArr, typeId) < 0) ||
-                Arrays.binarySearch(breakableArr, typeId) >= 0;
+    public boolean allowed(String name) {
+        return open || name.equals(owner) || visitors.contains(name);
     }
 
-    public boolean allowInteract(Player player, Block block, ItemStack item) {
-        // assumes plot contains block.x and block.z
-        if (block == null || block.getY() < startDepth) { return true; }
-        int typeId = item == null ? 0 : item.getTypeId();
-        if (typeId > 0) {
-            return (allowed(player) && Arrays.binarySearch(unplaceableArr, typeId) < 0) ||
-                    (Arrays.binarySearch(placeableArr, typeId) >= 0);
-        }
-        typeId = block.getTypeId();
-        return (allowed(player) && Arrays.binarySearch(uninteractableArr, typeId) < 0) ||
-                (Arrays.binarySearch(interactableArr, typeId) >= 0);
+    public boolean allowed(Player player) {
+        return open || allowed(player.getName());
     }
+
 
     public void processEvent(PlayerInteractEvent e) {
-        if (!allowInteract(e.getPlayer(), e.getClickedBlock(), e.getItem())) {
+        Block block = e.getClickedBlock();
+        if (block == null || block.getY() < startDepth) {
+            return;
+        }
+        if (!allowInteraction(e.getPlayer(), block, e.getItem())) {
             e.setUseInteractedBlock(Event.Result.DENY);
         }
     }
 
     public void processEvent(BlockDamageEvent e) {
-        if (!allowDamage(e.getPlayer(), e.getBlock())) {
+        Block block = e.getBlock();
+        if (block.getY() < startDepth) {
+            return;
+        }
+        if (!allowDamage(e.getPlayer(), block)) {
             e.setCancelled(true);
         }
+    }
+
+
+    protected boolean allowTypeId(Player player, int typeId, int[] allowedTypeIds, int[] unallowedTypeIds) {
+        return (allowed(player) && Arrays.binarySearch(unallowedTypeIds, typeId) < 0) || Arrays.binarySearch(allowedTypeIds, typeId) >= 0;
+    }
+
+    protected boolean allowDamage(Player player, Block block) {
+        // assumes plot contains block.x and block.z
+        return allowTypeId(player, block.getTypeId(), breakableArr, unbreakableArr);
+    }
+
+    protected boolean allowInteraction(Player player, Block block, ItemStack item) {
+        // assumes plot contains block.x and block.z
+        int typeId = item == null ? 0 : item.getTypeId();
+        if (typeId > 0) {
+            return allowTypeId(player, typeId, placeableArr, unplaceableArr);
+        }
+        typeId = block.getTypeId();
+        return allowTypeId(player, typeId, interactableArr, uninteractableArr);
     }
 
 

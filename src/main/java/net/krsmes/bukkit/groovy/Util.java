@@ -1,7 +1,6 @@
 package net.krsmes.bukkit.groovy;
 
 import groovy.lang.Closure;
-import groovy.lang.GroovyObject;
 import groovy.util.Eval;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -9,7 +8,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
@@ -205,7 +204,7 @@ public class Util {
     }
 
 
-    public static void sendMessage(JavaPlugin plugin, final Player player, final String message) {
+    public static void sendMessage(Plugin plugin, final Player player, final String message) {
         plugin.getServer().getScheduler().scheduleAsyncDelayedTask(plugin,
             new Runnable() {
                 public void run() {
@@ -216,7 +215,7 @@ public class Util {
     }
 
 
-    public static void teleport(GroovyPlugin plugin, final Player player, final Location dest) {
+    public static void teleport(Plugin plugin, final Player player, final Location dest) {
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin,
                 new Runnable() {
                     public void run() {

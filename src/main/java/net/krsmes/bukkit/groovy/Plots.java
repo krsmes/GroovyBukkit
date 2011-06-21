@@ -21,9 +21,9 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.weather.LightningStrikeEvent;
 import org.bukkit.plugin.EventExecutor;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 
-import java.lang.annotation.Target;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -40,21 +40,21 @@ public class Plots implements EventExecutor, Listener {
     public static String ATTR_PLOT_PROTECTION = "plotProtection";
     public static Plots instance;
 
-    GroovyPlugin plugin;
+    Plugin plugin;
 
     Map<String, Plot> plots;
     Plot publicPlot;
     boolean plotProtection;
 
 
-    private Plots(GroovyPlugin plugin) {
+    private Plots(Plugin plugin) {
         log.info("Plots: creating instance");
         this.plugin = plugin;
-        register();
+        if (this.plugin != null) { register(); }
     }
 
 
-    public static synchronized Plots enable(GroovyPlugin plugin) {
+    public static synchronized Plots enable(Plugin plugin) {
         if (instance == null || instance.plugin != plugin) {
             instance = new Plots(plugin);
         }
@@ -96,7 +96,7 @@ public class Plots implements EventExecutor, Listener {
 //
 
     public void execute(Listener listener, Event event) {
-        if (plugin.enabled && plotProtection) {
+        if (plugin.isEnabled() && plotProtection) {
             Player player;
             Map<String, Object> playerData;
             Plot current;
@@ -105,14 +105,14 @@ public class Plots implements EventExecutor, Listener {
                 case PLAYER_TELEPORT:
                     PlayerMoveEvent pme = (PlayerMoveEvent) event;
                     player = pme.getPlayer();
-                    playerData = plugin.getData(player);
+                    playerData = ((GroovyPlugin) plugin).getData(player);
                     processEvent(playerData, pme);
                     break;
 
                 case BLOCK_DAMAGE:
                     BlockDamageEvent bde = (BlockDamageEvent) event;
                     player = bde.getPlayer();
-                    playerData = plugin.getData(player);
+                    playerData = ((GroovyPlugin) plugin).getData(player);
                     current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
                     processEvent(current, bde);
                     break;
@@ -120,7 +120,7 @@ public class Plots implements EventExecutor, Listener {
                 case PLAYER_INTERACT:
                     PlayerInteractEvent pie = (PlayerInteractEvent) event;
                     player = pie.getPlayer();
-                    playerData = plugin.getData(player);
+                    playerData = ((GroovyPlugin) plugin).getData(player);
                     current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
                     processEvent(current, pie);
                     break;
@@ -129,6 +129,7 @@ public class Plots implements EventExecutor, Listener {
                     ExplosionPrimeEvent epe = (ExplosionPrimeEvent) event;
                     current = findPlot(epe.getEntity());
                     epe.setCancelled(current.isNoExplode());
+                    if (current.isNoIgnite()) { epe.setFire(false); }
                     break;
 
                 case CREATURE_SPAWN:
@@ -228,7 +229,9 @@ public class Plots implements EventExecutor, Listener {
         return result;
     }
 
-
+    /*
+    Does a normal x/z plot find but first checks "firstCheck" plot for optimization
+     */
     public Plot findPlot(Plot firstCheck, int x, int z) {
         Plot result = firstCheck;
         if (firstCheck == null || !firstCheck.contains(x, z)) {
@@ -285,6 +288,7 @@ public class Plots implements EventExecutor, Listener {
         mgr.registerEvent(Event.Type.PLAYER_CHAT, this, this, Event.Priority.Lowest, plugin);
         mgr.registerEvent(Event.Type.LIGHTNING_STRIKE, this, this, Event.Priority.Lowest, plugin);
         mgr.registerEvent(Event.Type.BLOCK_IGNITE, this, this, Event.Priority.Lowest, plugin);
+        mgr.registerEvent(Event.Type.ENTITY_DAMAGE, this, this, Event.Priority.Lowest, plugin);
     }
 
 
@@ -299,6 +303,7 @@ public class Plots implements EventExecutor, Listener {
     protected void processEvent(Plot firstCheck, BlockDamageEvent e) {
         final Block block = e.getBlock();
         findPlot(firstCheck, block.getX(), block.getZ()).processEvent(e);
+
         if (e.isCancelled() && block.getState() instanceof Sign) {
             // send block update on signs so the text is restored
             plugin.getServer().getScheduler().scheduleAsyncDelayedTask(plugin,
@@ -325,25 +330,29 @@ public class Plots implements EventExecutor, Listener {
             // see if player moved off of block horizontally
             if (toX != fromX || toZ != fromZ || type == Event.Type.PLAYER_TELEPORT) {
                 Player player = e.getPlayer();
-                Plot current = playerData.containsKey(ATTR_PLOT) ? (Plot) playerData.get(ATTR_PLOT) : null;
+                Plot currentPlot = playerData.containsKey(ATTR_PLOT) ? (Plot) playerData.get(ATTR_PLOT) : null;
                 // see if new location is in the same plot (faster than doing a full plot scan)
-                if (current != null && current.contains(toX, toZ)) {
-                    if (current.isNoTeleport() && type == Event.Type.PLAYER_TELEPORT) {
+                if (currentPlot != null && currentPlot.contains(toX, toZ)) {
+                    if (type == Event.Type.PLAYER_TELEPORT && currentPlot.isNoTeleport()) {
+                        // no teleporting within current plot
                         e.setCancelled(true);
                     }
                 }
                 else {
                     // where are we now?
-                    Plot plot = findPlot(toX, toZ);
-                    if (plot != current) {
-                        if (current != null && current.isNoTeleport() && type == Event.Type.PLAYER_TELEPORT) {
+                    Plot destinationPlot = findPlot(toX, toZ);
+                    if (destinationPlot != currentPlot) {
+                        if (currentPlot != null && type == Event.Type.PLAYER_TELEPORT && currentPlot.isNoTeleport()) {
+                            // no teleporting out of current plot
                             e.setCancelled(true);
                         }
-                        else if (plotChange(player, current, plot)) {
-                            playerData.put(ATTR_PLOT, plot);
-                            Util.sendMessage(plugin, player, ChatColor.DARK_AQUA + "Now in plot " + plot);
+                        else if (plotChange(player, currentPlot, destinationPlot)) {
+                            // plot change is allowed...
+                            playerData.put(ATTR_PLOT, destinationPlot);
+                            Util.sendMessage(plugin, player, ChatColor.DARK_AQUA + "Now in plot " + destinationPlot);
                         }
                         else {
+                            // plot change is not allowed...
                             e.setCancelled(true);
                             if (type == Event.Type.PLAYER_MOVE) {
                                 Util.teleport(plugin, player, from);
@@ -357,11 +366,15 @@ public class Plots implements EventExecutor, Listener {
 
 
     protected boolean plotChange(Player p, Plot from, Plot to) {
+        // first ask plots if departure and arrival are allowed
         if ((from == null || from.allowDeparture(p)) && (to == null || to.allowArrival(p))) {
+            // fire PlotChangeEvent
             PluginManager mgr = plugin.getServer().getPluginManager();
             PlotChangeEvent pce = new PlotChangeEvent(p, from, to);
             mgr.callEvent(pce);
+            // make sure it isn't cancelled
             if (!pce.isCancelled()) {
+                // notify from/to plots of departure/arrival
                 if (from != null) { from.depart(p); }
                 if (to != null) { to.arrive(p); }
                 return true;
