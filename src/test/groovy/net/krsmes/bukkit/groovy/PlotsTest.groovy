@@ -15,7 +15,8 @@ import org.bukkit.entity.LightningStrike
 import org.bukkit.event.block.BlockIgniteEvent
 import org.bukkit.event.block.BlockIgniteEvent.IgniteCause
 import org.bukkit.event.entity.EntityDamageEvent
-import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause
+import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 
 /**
  * PlotsTest ...
@@ -73,7 +74,7 @@ public class PlotsTest {
         // basic 'no' features
         [
             noExplode: new ExplosionPrimeEvent(inPlotEntity, 3.0, false),
-            noSpawn: new CreatureSpawnEvent(inPlotEntity, CreatureType.CHICKEN, BukkitFixtures.makeLocation(x:1,y:64,z:1)),
+            noSpawn: new CreatureSpawnEvent(inPlotEntity, CreatureType.CHICKEN, BukkitFixtures.makeLocation(x:1,y:64,z:1), SpawnReason.NATURAL),
             noTarget: new EntityTargetEvent(inPlotEntity, inPlotVisitor, TargetReason.CLOSEST_PLAYER),
             noChat: new PlayerChatEvent(inPlotVisitor, "hey you"),
             noLightning: new LightningStrikeEvent(BukkitFixtures.world,
@@ -85,8 +86,12 @@ public class PlotsTest {
             expectCancelled(true, value) { plot."$key" = true }
         }
 
+        // should still spawn if not natural
+        def event = new CreatureSpawnEvent(inPlotEntity, CreatureType.CHICKEN, BukkitFixtures.makeLocation(x: 1, y: 64, z: 1), SpawnReason.SPAWNER)
+        expectCancelled(false, event) { plot.noSpawn = true }
+
         // should still target non-visitors
-        def event = new EntityTargetEvent(inPlotEntity, inPlotPlayer, TargetReason.CLOSEST_PLAYER)
+        event = new EntityTargetEvent(inPlotEntity, inPlotPlayer, TargetReason.CLOSEST_PLAYER)
         expectCancelled(false, event) { plot.noTarget = true }
 
         // should still damage non-visitors

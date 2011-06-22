@@ -134,8 +134,10 @@ public class Plots implements EventExecutor, Listener {
 
                 case CREATURE_SPAWN:
                     CreatureSpawnEvent cse = (CreatureSpawnEvent) event;
-                    current = findPlot(cse.getLocation());
-                    cse.setCancelled(current.isNoSpawn());
+                    if (cse.getSpawnReason() == CreatureSpawnEvent.SpawnReason.NATURAL) {
+                        current = findPlot(cse.getLocation());
+                        cse.setCancelled(current.isNoSpawn());
+                    }
                     break;
 
                 case ENTITY_TARGET:
