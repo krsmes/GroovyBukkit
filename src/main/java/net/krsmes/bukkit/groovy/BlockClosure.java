@@ -93,26 +93,32 @@ public class BlockClosure implements Serializable {
         if (closure != null && --sleepCount < 0 && world.isChunkLoaded(x >> 4, z >> 4)) {
             Block block = world.getBlockAt(x, y, z);
             if (block.getTypeId() == typeId) {
-                int paramCount = closure.getMaximumNumberOfParameters();
-                Object result;
-                // call closure
-                if (paramCount == 3) {
-                    result = closure.call(plugin.getRunner(), block, triggerCount++);
-                } else if (paramCount == 2) {
-                    result = closure.call(plugin.getRunner(), block);
-                } else {
-                    result = closure.call(block);
+                try {
+                    int paramCount = closure.getMaximumNumberOfParameters();
+                    Object result;
+                    // call closure
+                    if (paramCount == 3) {
+                        result = closure.call(plugin.getRunner(), block, triggerCount++);
+                    } else if (paramCount == 2) {
+                        result = closure.call(plugin.getRunner(), block);
+                    } else {
+                        result = closure.call(block);
+                    }
+                    // process result
+                    if (result instanceof Integer) {
+                        sleepCount = (Integer) result;
+                    } else if (result instanceof Event) {
+                        plugin.getServer().getPluginManager().callEvent((Event) result);
+                    } else if (result instanceof Boolean && !(Boolean) result) {
+                        // false returned, unregister
+                        return false;
+                    }
                 }
-                // process result
-                if (result instanceof Integer) {
-                    sleepCount = (Integer) result;
-                } else if (result instanceof Event) {
-                    plugin.getServer().getPluginManager().callEvent((Event) result);
-                } else if (result instanceof Boolean && !(Boolean) result) {
-                    // false returned, unregister
+                catch (Exception e) {
                     return false;
                 }
-            } else {
+            }
+            else {
                 // typeId has changed, unregister
                 return false;
             }

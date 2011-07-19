@@ -88,13 +88,14 @@ def processStarMessage(msg, runner, event) {
 
 command 'stats', { runner, args ->
     def player = runner.player
-    def stats = getPlayerStats(args ? runner.p(args[0]) : player)
+    def statsPlayer = args ? runner.p(args[0]) : player
+    def stats = getPlayerStats(statsPlayer)
     if (stats) {
         player.sendMessage "First login: $stats.firstLogin"
         player.sendMessage "Last login: $stats.lastLogin"
         player.sendMessage "Last online time: ${stats.lastOnlineTime / 60000} m, total: ${stats.totalOnlineTime / 60000} m"
         player.sendMessage "$stats.loginCount logins, $stats.kickCount kicks, $stats.respawnCount respawns, $stats.chatCount chats"
-        "$name ${runner.p(name)?.online ? 'has been online for '+((System.currentTimeMillis() - stats.lastLogin.time) / 60000)+' minutes' : 'has been offline since '+stats.lastQuit}"
+        "$statsPlayer.name ${statsPlayer.online ? 'has been online for '+((System.currentTimeMillis() - stats.lastLogin.time) / 60000)+' minutes' : 'has been offline since '+stats.lastQuit}"
     }
     else "Unable to find stats"
 }
