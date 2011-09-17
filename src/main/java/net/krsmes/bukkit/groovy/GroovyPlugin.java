@@ -14,6 +14,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.config.Configuration;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -47,6 +48,9 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     Map<String, Closure> commands;
     Map<String, GroovyPlayerRunner> playerRunners;
     GroovyRunner runner;
+
+    // from configuration
+    List<String> hiddenPlayers;
 
 
     public GroovyRunner getRunner() {
@@ -351,6 +355,12 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     }
 
 
+    public void onLoad() {
+        LOG.info(getDescription().getName() + ' ' + getDescription().getVersion() + " loading");
+        Configuration config = getConfiguration();
+        hiddenPlayers = config.getStringList("hidden-players", Collections.EMPTY_LIST);
+    }
+
     /* WORLD_SAVE */
     protected void onSave() {
         LOG.info(getDescription().getName() + ' ' + getDescription().getVersion() + " saving");
@@ -376,7 +386,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     /* PLAYER_JOIN */
     protected void onJoin(PlayerJoinEvent e) {
         Player player = e.getPlayer();
-        if (GROOVY_GOD.equals(player.getName())) { e.setJoinMessage(null); }
+        if (hiddenPlayers.contains(player.getName())) { e.setJoinMessage(null); }
         String joinMessage = (String) global.get(DATA_JOIN_MESSAGE);
         if (joinMessage != null) { player.sendMessage(joinMessage); }
     }
@@ -385,7 +395,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     /* PLAYER_QUIT */
     protected void onQuit(PlayerQuitEvent e) {
         Player player = e.getPlayer();
-        if (GROOVY_GOD.equals(player.getName())) { e.setQuitMessage(null); }
+        if (hiddenPlayers.contains(player.getName())) { e.setQuitMessage(null); }
         finalizePlayer(player);
     }
 

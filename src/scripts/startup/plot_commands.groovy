@@ -17,7 +17,6 @@ Commands:
     plot set open ON|OFF     standing in an owned plot, set this plot as open to the public
 
     plot-protection ON|OFF   turn plot protection system on or off
-    plot-create NAME         using the area defined by the last two Stick-RightClicks (from powertools), create a named plot
     plot-delete NAME         delete the named plot
     plot-assign PLAYER       standing in a plot, assign PLAYER as the owner (note: ignores max-owned)
     plot-add NAME            add the area defined by the last two Stick-RightClicks (from powertools) to the named plot

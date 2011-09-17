@@ -163,7 +163,7 @@ command 'warp-public', { GroovyRunner r, List args ->
         if (clicked) {
             if (clicked.type == Material.WALL_SIGN || clicked.type == Material.SIGN_POST) {
                 def text = it.clickedBlock.state.lines
-                if (text[0] == 'warp') r.runCommand('warp', [text[1]])
+                if (text[0] == 'warp') r.runCommand('warp', ['to', text[1]])
             }
         }
     }

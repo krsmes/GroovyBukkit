@@ -1,4 +1,4 @@
-/*
+ /*
 Name: GroovyGive
 
 Command: gg  (renamed from give to not conflict with the built in give)
