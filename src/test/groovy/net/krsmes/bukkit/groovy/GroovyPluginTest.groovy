@@ -8,7 +8,8 @@ import org.bukkit.entity.Player
 class GroovyPluginTest {
 
     def player1 = [
-        getName: {'tester1'}
+        getName: {'tester1'},
+        isOp: {false}
     ] as Player
 
 
