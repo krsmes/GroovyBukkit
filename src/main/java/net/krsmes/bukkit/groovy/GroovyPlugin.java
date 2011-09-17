@@ -218,7 +218,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     public boolean permitted(Player player, String command) {
         if (enabled) {
             Map<String, List<String>> permissions = (Map) global.get(DATA_PERMISSIONS);
-            if (player == null || permissions == null) {
+            if (player == null || permissions == null || player.isOp()) {
                 return true;
             }
             String name = player.getName();

@@ -47,7 +47,7 @@ def warpTo = { r, warp_name ->
     }
     if (warp_loc) {
         r.data.lastloc = r.player.location
-        r.player.teleportTo warp_loc
+        r.player.teleport warp_loc
         warp_loc.toString()
     }
     else "Warp '$warp_name' not found"
@@ -57,7 +57,7 @@ def warpTo = { r, warp_name ->
 def warpBack = { r ->
     if (r.data.lastloc) {
         def lastloc = r.player.location
-        r.player.teleportTo r.data.lastloc
+        r.player.teleport r.data.lastloc
         r.data.lastloc = lastloc
     }
 }

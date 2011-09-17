@@ -49,8 +49,8 @@ Notes:
 
  */
 
-def defaultMaxOwned = 3
-def defaultMaxArea = 4096
+def defaultMaxOwned = 2
+def defaultMaxArea = 1024
 
 
 def playerPlot(player, Closure c) {
@@ -268,33 +268,6 @@ command 'plot', { GroovyRunner r, List args ->
 command 'plot-protection', { GroovyRunner r, List args ->
     if (args) r.plots().plotProtection = (args[0] == 'on')
     "Plot protection is ${r.plots().plotProtection?'on':'off'}"
-}
-
-
-command 'plot-create', { GroovyRunner r, List args ->
-    if (args?.size() == 0) return "Name needed to create plot"
-
-    def plot_name = args[0]
-    if (plot_name.equalsIgnoreCase('public')) return "You cannot create plot named 'public'"
-    if (r.plots().findPlot(plot_name)) return "Plot '$plot_name' already exists"
-
-    def plot_loc1 = null
-    def plot_loc2 = null
-
-    // TODO: alternate ways of identifying a plot
-    if (r.data.stickClicks?.size() > 1) {
-        plot_loc1 = r.data.stickClicks[0]
-        plot_loc2 = r.data.stickClicks[1]
-    }
-
-    if (!plot_loc1 || !plot_loc2) return "Unable to identify plot perimeter"
-
-    def a = r.area(plot_loc1, plot_loc2)
-
-    if (r.plots().createPlot(plot_name, a, r.world))
-        "Plot '$plot_name' created with area $a"
-    else
-        "Unable to create plot '$plot_name'"
 }
 
 
