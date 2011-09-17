@@ -6,6 +6,8 @@ A CraftBukkit Plugin for running scripts written in [Groovy](http://groovy.codeh
 Because of the dynamic nature of groovy, and the simplicity of adding commands and event listeners with
 this API, the possibilities with this plugin are endless.
 
+See also: [Google Doc](https://docs.google.com/document/pub?id=1JuFLSs1jxdaoFxYE7XVoraIR_wDvfSNqtBpXbLn5gPM)
+
 
 Compilation
 -----------
@@ -38,9 +40,9 @@ Running
 Groovy will have to be added to the classpath for running craftbukkit/mineserver:
 
     Mac/Linux:
-	java -Xmx1g -cp groovy-all-1.7.8.jar:craftbukkit.jar org.bukkit.craftbukkit.Main nogui
+	java -Xmx1g -cp groovy-all-1.8.2.jar:craftbukkit.jar org.bukkit.craftbukkit.Main nogui
     Windows:
-	java -Xmx1g -cp groovy-all-1.7.8.jar;craftbukkit.jar org.bukkit.craftbukkit.Main nogui
+	java -Xmx1g -cp groovy-all-1.8.2.jar;craftbukkit.jar org.bukkit.craftbukkit.Main nogui
 
 (Creating a start.sh/start.bat script is recommended)
 
@@ -48,7 +50,7 @@ At start up an info message should be displayed:
 
     [INFO]
     [INFO] Registered 'GroovyPlugin' with X listener(s): [...]
-	[INFO] Groovy Plugin 0.4.x enabled
+	[INFO] Groovy Plugin 0.6.x enabled
 
 
 Using
@@ -266,25 +268,21 @@ Note: in Groovy the last statement in a function (or in a script) is what gets r
 add the 'return' keyword).  If the 'return' result of a script in the startup directory is a Map,
 GroovyBukkit will assume that it is a map of event listeners and register it (with the name of the script).
 
-* eat4health
-    - decrements each online player's health by 1 (half a heart) every 6 minecraft hours, forcing users to eat once in a while
-* give
-    - a reimplementation of the '/give' command, see comments at the top of give.groovy
-* permissions
+* give_command
+    - implementation of the '/gg' command, see comments at the top of give.groovy
+* permission_changer
     - implementation of the '/permit' command, see comments at the top of permissions.groovy
-* plots
+* plot_commands
     - a full plot creation and protection set of commands and listeners
-* powertools
+* power_tools
     - a set of listeners to give special powers to certain items in your hand (with a /ptools command to turn them on and off)
-* stats
+* players
     - listeners and '/stats' command to keep track of who logs into your server (online time, logins, respawns, etc.)
-* time
-    - commands to set time of day: /sunrise, /morning, /noon, /sunset, /night
-* warps
+* warp_commands
     - warp releated commands (supports both private and public warps), and listner for sign warps
 
 
-REMEMBER! for commands (like /warp or /give etc) you have to give users permission to use those commands:
+REMEMBER! for commands (like /warp or /gg etc) you have to give users permission to use those commands:
     /permit soandso ptools
     /permit * warp-help warp warp-back warp-create warp-delete
 
@@ -299,11 +297,9 @@ Notes
 * 'data' gets persisted to/from scripts/PlayerName/data.yml
 * look in src/scripts for many other examples
     - attract.groovy : cause an entity (cow, pig, etc) to follow you
-    - alwaysday.groovy : '/g alwaysday()' at sunset flip to sunrise
     - debug.groovy : '/g debug()' show available variables and their values
     - debuglisteners.groovy : '/g debuglisteners()' listen to all non-noisy bukkit events (to console log)
     - fill.groovy : '/g fill DEPTH, HEIGHT, WIDTH, MATERIAL' to fill an area
     - stairsup.groovy : /g stairsup()' create steps from current location up to air
-    - tree.groovy : '/g tree()' create a tree where you're looking
     - wool.groovy : '/g inv << wool('brown', 5)' create itemstacks of colored wool
 
