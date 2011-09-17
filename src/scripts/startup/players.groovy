@@ -1,5 +1,6 @@
 import org.bukkit.event.Event
 import org.bukkit.event.player.*
+import static org.bukkit.ChatColor.*
 import net.krsmes.bukkit.groovy.GroovyRunner
 
 def playerStatsToString = { stats ->
@@ -46,7 +47,7 @@ def processAtMessage(msg, runner, event) {
         recip.clear()
         def players = runner.server.onlinePlayers.findAll { it.data.plot == e.player.data.plot }
         recip.addAll(players)
-        event.message = msg[sp + 1..-1]
+        event.message = "$GRAY${msg[sp + 1..-1]}"
     }
     else if (sp > 1) {
         // send to specified players
@@ -66,7 +67,7 @@ def processAtMessage(msg, runner, event) {
         }
         else {
             recip << event.player
-            event.message = msg[sp + 1..-1]
+            event.message = "$GRAY${msg[sp + 1..-1]}"
         }
     }
 }
@@ -98,6 +99,65 @@ command 'stats', { runner, args ->
         "$statsPlayer.name ${statsPlayer.online ? 'has been online for '+((System.currentTimeMillis() - stats.lastLogin.time) / 60000)+' minutes' : 'has been offline since '+stats.lastQuit}"
     }
     else "Unable to find stats"
+}
+
+command 'go', { GroovyRunner runner, List args ->
+    def player = runner.player
+
+    def jumps = runner.global.temp.jumps ?: []
+    runner.global.temp.jumps = jumps
+    // jumps is a list of permitted jumps in the format of SOURCE_PLAYERNAME:DEST_PLAYERNAME
+
+    msgs = []
+    if (args) switch (args.remove(0)) {
+        case 'to':
+            def srcP = player
+            def destP = args ? runner.p(args[0]) : null
+            def jumpName = destP ? srcP.name + ':' + destP.name : jumps.find { it.startsWith(srcP.name + ':') }
+            if (!destP && jumpName) destP = runner.p(jumpName.split(':')[1])
+            if (jumps.contains(jumpName)) {
+                // do it
+                jumps.remove(jumpName)
+                srcP.teleport(destP)
+            }
+            else if (jumpName) {
+                // request
+                jumps << jumpName
+                destP.sendMessage("Type '/go get' to telport $srcP.name to you")
+            }
+            else
+                msgs << 'Unable to find player'
+            break
+
+        case 'get':
+            def srcP = args ? runner.p(args[0]) : null
+            def destP = player
+            def jumpName = srcP ? srcP.name + ':' + destP.name : jumps.find { it.endsWith(':' + destP.name) }
+            if (!srcP && jumpName) srcP = runner.p(jumpName.split(':')[0])
+            if (jumps.contains(jumpName)) {
+                // do it
+                jumps.remove(jumpName)
+                srcP.teleport(destP)
+            }
+            else if (jumpName) {
+                // request
+                jumps << jumpName
+                srcP.sendMessage("Type '/go to' to telport to $destP.name")
+            }
+            else
+                msgs << 'Unable to find player'
+            break
+
+        default:
+            msgs << '/go to PLAYER  :request jump to PLAYER'
+            msgs << '/go get PLAYER  :request PLAYER jump to you'
+            msgs << '/go to  :accept a request to jump to a player'
+            msgs << '/go get  :accept a request to jump to you'
+            break
+    }
+
+    msgs.each { player.sendMessage it }
+    null
 }
 
 

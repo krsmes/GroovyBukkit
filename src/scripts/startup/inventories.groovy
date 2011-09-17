@@ -28,15 +28,17 @@ command 'swap', { GroovyRunner runner, List args ->
         otherPlayerName = swaps.find{it.startsWith('*:')}?.substring(2)
         if (otherPlayerName) {
             def otherPlayer = runner.p(otherPlayerName)
+            def swapName = '*:' + otherPlayerName
             if (otherPlayer) {
                 // do the swap
                 swapPlayerInventories(player, otherPlayer)
-                swaps << '*:' + otherPlayerName
+                swaps.remove(swapName)
                 "Inventory swapped with $otherPlayerName"
+                otherPlayer.sendMessage("Inventory swapped with $playerName")
             }
             else {
                 // not online, take off the list
-                swaps >> '*:' + otherPlayerName
+                swaps.remove(swapName)
                 "Try again, $otherPlayerName is not online and has been removed from swap list"
             }
         }
@@ -55,13 +57,15 @@ command 'swap', { GroovyRunner runner, List args ->
             if (swaps.contains(swapName)) {
                 // do the swap
                 swapPlayerInventories(player, otherPlayer)
-                swaps << swapName
+                swaps.remove(swapName)
                 "Inventory swapped with $otherPlayerName"
+                otherPlayer.sendMessage("Inventory swapped with $playerName")
             }
             else {
                 // add swap to the list (swap will happen when other player swaps with this name)
                 swaps << (otherPlayerName + ':' + playerName)
                 "Waiting for $otherPlayerName to swap"
+                otherPlayer.sendMessage("Type /swap $playerName to swap inventory with $playerName")
             }
         }
         else {
