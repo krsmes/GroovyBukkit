@@ -248,7 +248,7 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
     }
 
 	void command(String cmd, Closure c) {
-        println "$plugin.description.name registered command '$cmd'"
+        //println "$plugin.description.name registered command '$cmd'"
 		plugin.commands[cmd] = c
 	}
 

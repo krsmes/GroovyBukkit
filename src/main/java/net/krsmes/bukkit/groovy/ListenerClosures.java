@@ -88,7 +88,7 @@ public class ListenerClosures implements EventExecutor, Listener {
 //
 
     public void register(String name, Event.Type type, Closure closure) {
-        LOG.info(plugin.getDescription().getName() + " registered '" + name + "' for event: " + type);
+        LOG.fine(plugin.getDescription().getName() + " registered '" + name + "' for event: " + type);
         List<Closure> namedListener = getOrCreateListeners(name);
         List<Closure> registeredType = getOrCreateRegistered(type, type.toString());
         if (!namedListener.contains(closure)) {
@@ -101,7 +101,7 @@ public class ListenerClosures implements EventExecutor, Listener {
 
 
     public void register(String name, String eventName, Closure closure) {
-        LOG.info(plugin.getDescription().getName() + " registered '" + name + "' for custom event: " + eventName);
+        LOG.fine(plugin.getDescription().getName() + " registered '" + name + "' for custom event: " + eventName);
         List<Closure> namedListener = getOrCreateListeners(name);
         List<Closure> registeredType = getOrCreateRegistered(Event.Type.CUSTOM_EVENT, eventName);
         if (!namedListener.contains(closure)) {
@@ -121,7 +121,7 @@ public class ListenerClosures implements EventExecutor, Listener {
                     closures.remove(c);
                 }
             }
-            LOG.info(plugin.getDescription().getName() + " unregistered '" + name + "'");
+            LOG.fine(plugin.getDescription().getName() + " unregistered '" + name + "'");
         }
     }
 
