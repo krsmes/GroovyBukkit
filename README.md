@@ -266,18 +266,23 @@ Would look for http://192.168.1.99/~path/minecraft/morning.groovy and execute it
 Example
 -------
 If you are below ground and want to teleport yourself above ground:
+
 	/g me.teleport l(x,z)
 
 Send you a message whenever a block ignites:
+
 	/g listen 'msgignite', 'block ignite' { p.sendMessage "${it.cause} lit ${it.block}" }
 
 Cancel entities from exploding:
+
 	/g listen 'preventexplode', 'entity explode' {it.cancelled=true}
 
 Figure out what kind of biome you are in:
+
 	/g blk.biome
 
 Change the type of block above the block you are looking at
+
     /g (at+1).type=m('fence')
 
 
