@@ -6,7 +6,10 @@ A CraftBukkit Plugin for running scripts written in [Groovy](http://groovy.codeh
 Because of the dynamic nature of groovy, and the simplicity of adding commands and event listeners with
 this API, the possibilities with this plugin are endless.
 
-See also: [Google Doc](https://docs.google.com/document/pub?id=1JuFLSs1jxdaoFxYE7XVoraIR_wDvfSNqtBpXbLn5gPM)
+See also:
+
+* [Google Doc](https://docs.google.com/document/pub?id=1JuFLSs1jxdaoFxYE7XVoraIR_wDvfSNqtBpXbLn5gPM)
+* [Bukkit Forum](http://forums.bukkit.org/threads/dev-admn-edit-gen-misc-chat-tp-groovybukkit-v0-6-5-2-groovy-scripting-module-1150.1267/)
 
 
 Compilation
@@ -24,9 +27,9 @@ Maven to handle dependencies.
 
 Installation
 ------------
-* Copy the .jar file from target/ to your craftserver folder's plugins/ directory
-* Create a scripts/ directory peer to the plugins/ directory
-* Download a copy of Groovy and copy embedded/groovy-all-1.x.jar to your craftserver folder
+* Copy the .jar file from target/ to your craftbukkit folder's plugins/ directory
+* Create a scripts/ directory under plugins/GroovyBukkit
+* Download a copy of Groovy and copy embedded/groovy-all-1.8.2.jar to your craftbukkit folder
 
 Additionally, to see what is possible, it is recommended you copy all the scripts from src/scripts to your
 scripts/ directory, including those under scripts/startup to scripts/startup under your bukkit server.
