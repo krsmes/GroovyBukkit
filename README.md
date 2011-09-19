@@ -34,6 +34,7 @@ scripts/ directory, including those under scripts/startup to scripts/startup und
 Scripts in scripts/startup/ run automatically at server startup (and reload).
 
 A properly configured setup will look something like:
+
     craftbukkit.jar
     groovy-all-1.8.2.jar
     plugins/
