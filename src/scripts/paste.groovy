@@ -68,13 +68,15 @@ layers.each { layer ->
                             if (rowlen > idx + 1) {
                                 matdata = determineMaterialData(mat, row[idx + 2])
                             }
-                            if (mat in postProcessMaterials) {
-                                postProcess << [cur, mat, matdata]
-                            }
                             if ((mat == Material.WOODEN_DOOR || mat == Material.IRON_DOOR_BLOCK) && ((cur - 1).type == mat)) {
                                 matdata |= 0x8
                             }
-                            cur.setTypeIdAndData(mat.id, (byte) matdata, false)
+                            if (mat in postProcessMaterials) {
+                                postProcess << [cur, mat, matdata]
+                            }
+                            else {
+                                cur.setTypeIdAndData(mat.id, (byte) matdata, false)
+                            }
                         }
                         cur += fRgt
                     }
@@ -84,11 +86,10 @@ layers.each { layer ->
     }
 }
 
-postProcess.each { blkMatData ->
-    blkMatData[0].state.with {
-        type = blkMatData[1]
-        if (blkMatData[2]) data = type.getNewData((byte) blkMatData[2])
-        update()
+future(50) {
+    postProcess.each { blkMatData ->
+        blkMatData[0].setTypeIdAndData(blkMatData[1].id, (byte) blkMatData[2], false)
+        blkMatData[0].state.update()
     }
 }
 

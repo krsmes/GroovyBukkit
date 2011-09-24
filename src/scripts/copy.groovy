@@ -9,7 +9,7 @@ def wRange = (width instanceof Range) ? (width.from - 1..width.to - 1) : (width 
 
 def dataValueChar = ' abcdefghijklmno'
 def dataValueDirChar = { facing ->
-    facing == fRgt ? '>' : facing == fLft ? '<' : facing == fBck ? 'v' : '^'
+    facing == fRgt ? '>' : facing == fLft ? '<' : facing == fBck ? 'v' : facing == fac ? '^' : ' '
 }
 def encodeBlock = { Block block ->
     if (block.typeId) {
@@ -46,6 +46,6 @@ layers.each {
     result << '\n'
 }
 
-new File(filename).text = result.toString()
+new File(g.plugin.tempFolder, filename).text = result.toString()
 
 "Copied ${layers.size()} layers"

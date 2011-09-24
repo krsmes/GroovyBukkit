@@ -2,6 +2,7 @@ package net.krsmes.bukkit.groovy;
 
 import net.krsmes.bukkit.groovy.events.PlotChangeEvent;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -17,6 +18,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
 import org.bukkit.event.player.PlayerChatEvent;
+import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.weather.LightningStrikeEvent;
@@ -123,6 +125,16 @@ public class Plots implements EventExecutor, Listener {
                     playerData = ((GroovyPlugin) plugin).getData(player);
                     current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
                     processEvent(current, pie);
+                    break;
+
+                case PLAYER_GAME_MODE_CHANGE:
+                    PlayerGameModeChangeEvent pgmce = (PlayerGameModeChangeEvent) event;
+                    player = pgmce.getPlayer();
+                    playerData = ((GroovyPlugin) plugin).getData(player);
+                    current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
+                    if (current != null && current.isNoCreative() && pgmce.getNewGameMode() == GameMode.CREATIVE) {
+                        pgmce.setCancelled(true);
+                    }
                     break;
 
                 case EXPLOSION_PRIME:
@@ -283,6 +295,7 @@ public class Plots implements EventExecutor, Listener {
         mgr.registerEvent(Event.Type.PLAYER_TELEPORT, this, this, Event.Priority.Low, plugin);
         mgr.registerEvent(Event.Type.BLOCK_DAMAGE, this, this, Event.Priority.Lowest, plugin);
         mgr.registerEvent(Event.Type.PLAYER_INTERACT, this, this, Event.Priority.Lowest, plugin);
+        mgr.registerEvent(Event.Type.PLAYER_GAME_MODE_CHANGE, this, this, Event.Priority.Lowest, plugin);
 
         mgr.registerEvent(Event.Type.EXPLOSION_PRIME, this, this, Event.Priority.Lowest, plugin);
         mgr.registerEvent(Event.Type.CREATURE_SPAWN, this, this, Event.Priority.Lowest, plugin);
@@ -350,6 +363,9 @@ public class Plots implements EventExecutor, Listener {
                         }
                         else if (plotChange(player, currentPlot, destinationPlot)) {
                             // plot change is allowed...
+                            if (destinationPlot.isNoCreative() && player.getGameMode() == GameMode.CREATIVE) {
+                                player.setGameMode(GameMode.SURVIVAL);
+                            }
                             playerData.put(ATTR_PLOT, destinationPlot);
                             Util.sendMessage(plugin, player, ChatColor.DARK_AQUA + "Now in plot " + destinationPlot);
                         }

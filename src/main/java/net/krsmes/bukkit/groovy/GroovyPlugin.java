@@ -325,6 +325,13 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     }
 
 
+    public File getTempFolder() {
+        File temp = new File(getDataFolder(), "tmp/");
+        temp.mkdirs();
+        return temp;
+    }
+
+
     protected File getGlobalDataFile() {
         return new File(getDataFolder(), "data.yml");
     }

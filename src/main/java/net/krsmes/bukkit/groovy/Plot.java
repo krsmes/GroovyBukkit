@@ -38,6 +38,7 @@ public class Plot implements Serializable {
     boolean noDamage;
     boolean noEntry;
     boolean noInv;
+    boolean noCreative;
 
     int[] placeableArr = new int[0];
     int[] breakableArr = new int[0];
@@ -211,6 +212,14 @@ public class Plot implements Serializable {
 
     public void setNoInv(boolean noInv) {
         this.noInv = noInv;
+    }
+
+    public boolean isNoCreative() {
+        return noCreative;
+    }
+
+    public void setNoCreative(boolean noCreative) {
+        this.noCreative = noCreative;
     }
 
     public Set<Integer> getPlaceable() {
