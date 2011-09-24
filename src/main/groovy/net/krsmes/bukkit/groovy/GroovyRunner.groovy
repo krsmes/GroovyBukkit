@@ -277,7 +277,8 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
 // plugin updating
 //
 
-    def update(boolean force) {
+    def update(boolean force=false) {
+        log("Updating GroovyBukkit (${plugin.description.version})")
         def pluginConfig = plugin.configuration
 
         def gbukkitLoc = pluginConfig.getString('update-location', 'https://github.com/krsmes/GroovyBukkit/zipball/master')
@@ -285,12 +286,14 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
         def gbukkitJar = pluginConfig.getString('update-jar', 'GroovyBukkit.jar')
         def gbukkitLast = pluginConfig.getString('update-last')
 
+        log("Checking: $gbukkitLoc")
         def conn = new URL(gbukkitLoc).openConnection()
         def filename = conn.headerFields.'Content-Disposition'[0].split('=')[1]
 
         // make sure file is different than previous
         if (filename == gbukkitLast && !force) {
-            return "Already up-to-date"
+            log("Already up-to-date ${plugin.description.version} ($filename)")
+            return plugin.description.version
         }
 
         // download file
@@ -317,14 +320,14 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
             def name = it.name - scriptsRoot
             if (name && !name.endsWith('/')) {
                 def scriptFile = new File(scriptsDir, name)
-                println name + " (${scriptFile.exists() ? 'exists' : 'new'}) ${it.size} bytes"
+                //println name + " (${scriptFile.exists() ? 'exists' : 'new'}) ${it.size} bytes"
                 scriptFile.withOutputStream { os -> os << downloadZip.getInputStream(it) }
             }
         }
 
         pluginConfig.setProperty('update-last', filename)
+        log("Updated to $filename, reloading...")
         server.reload()
-        return "Updated to $filename"
     }
 
 
