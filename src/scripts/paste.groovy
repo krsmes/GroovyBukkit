@@ -24,7 +24,7 @@ def determineMaterialData = { mat, code ->
     if (code in ['^', 'v', '<', '>']) {
         def matData = mat.getNewData((byte) 0)
         if (matData instanceof Directional) {
-            matData.facingDirection = code == 'v' ? fBck : code == '<' ? fLft : code == '>' ? fRgt : fac
+            matData.facingDirection = code == 'v' ? fBck : code == '<' ? fLft : code == '>' ? fRgt : code == '^' ? fac : code == '^' ? BlockFace.DOWN : BlockFace.UP
             return matData.data
         }
         else if (matData instanceof Door) {

@@ -1,5 +1,6 @@
 import org.bukkit.block.Block
 import org.bukkit.material.Directional
+import org.bukkit.block.BlockFace
 
 def (depth, height, width, filename) = args.toList()
 
@@ -9,7 +10,7 @@ def wRange = (width instanceof Range) ? (width.from - 1..width.to - 1) : (width 
 
 def dataValueChar = ' abcdefghijklmno'
 def dataValueDirChar = { facing ->
-    facing == fRgt ? '>' : facing == fLft ? '<' : facing == fBck ? 'v' : facing == fac ? '^' : ' '
+    facing == fRgt ? '>' : facing == fLft ? '<' : facing == fBck ? 'v' : facing == fac ? '^' : facing == BlockFace.DOWN ? '!' : ' '
 }
 def encodeBlock = { Block block ->
     if (block.typeId) {
