@@ -5,7 +5,7 @@ import org.bukkit.Material
 
 //def plan = load(args[0])
 
-def plan = new File(args[0]).text
+def plan = new File(g.plugin.tempFolder, args[0]).text
 if (!plan) return "Unable to load ${args[0]}"
 
 def heightOfs = args.length > 1 ? args[1].toInteger() : 0
@@ -86,10 +86,13 @@ layers.each { layer ->
     }
 }
 
-future(50) {
-    postProcess.each { blkMatData ->
-        blkMatData[0].setTypeIdAndData(blkMatData[1].id, (byte) blkMatData[2], false)
-        blkMatData[0].state.update()
+future(10) {
+    postProcess.each { blk, mat, matdata ->
+        blk.setTypeIdAndData(mat.id, (byte) matdata, false)
+        blk.state.with {
+            data = mat.getNewData((byte)matdata)
+            update()
+        }
     }
 }
 
