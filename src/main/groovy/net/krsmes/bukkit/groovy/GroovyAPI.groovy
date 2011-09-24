@@ -326,7 +326,6 @@ class GroovyAPI {
         BlockClosures.instance.unregisterBlock(b)
     }
 
-
 //
 // helper methods
 //

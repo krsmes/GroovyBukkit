@@ -2,6 +2,7 @@ package net.krsmes.bukkit.groovy
 
 import org.bukkit.event.Event
 import org.bukkit.entity.Player
+import java.util.zip.ZipFile
 
 
 class GroovyRunner extends GroovyAPI {
@@ -270,6 +271,61 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
         }
     }
 
+
+
+//
+// plugin updating
+//
+
+    def update(boolean force) {
+        def pluginConfig = plugin.configuration
+
+        def gbukkitLoc = pluginConfig.getString('update-location', 'https://github.com/krsmes/GroovyBukkit/zipball/master')
+        def gbukkitDir = pluginConfig.getString('update-dir', 'plugins/update')
+        def gbukkitJar = pluginConfig.getString('update-jar', 'GroovyBukkit.jar')
+        def gbukkitLast = pluginConfig.getString('update-last')
+
+        def conn = new URL(gbukkitLoc).openConnection()
+        def filename = conn.headerFields.'Content-Disposition'[0].split('=')[1]
+
+        // make sure file is different than previous
+        if (filename == gbukkitLast && !force) {
+            return "Already up-to-date"
+        }
+
+        // download file
+        def downloadFile = new File(plugin.tempFolder, filename)
+        if (downloadFile.exists()) downloadFile.delete()
+        downloadFile.withOutputStream { os ->  os << conn.inputStream }
+
+        // open zip
+        def downloadZip = new ZipFile(downloadFile)
+        def zipRoot = filename - '.zip'
+
+        // extract jar
+        def updateJar = new File(gbukkitDir, gbukkitJar)
+        if (updateJar.exists()) updateJar.delete()
+        updateJar.withOutputStream { os ->
+            os << downloadZip.getInputStream(downloadZip.getEntry(zipRoot + '/' + gbukkitJar))
+        }
+
+        // extract scripts
+        def scriptsRoot = zipRoot + '/src/scripts/'
+        def scriptsDir = new File(plugin.dataFolder, 'scripts/')
+        scriptsDir.mkdirs()
+        downloadZip.entries().findAll {it.name.startsWith(scriptsRoot)}.each {
+            def name = it.name - scriptsRoot
+            if (name && !name.endsWith('/')) {
+                def scriptFile = new File(scriptsDir, name)
+                println name + " (${scriptFile.exists() ? 'exists' : 'new'}) ${it.size} bytes"
+                scriptFile.withOutputStream { os -> os << downloadZip.getInputStream(it) }
+            }
+        }
+
+        pluginConfig.setProperty('update-last', filename)
+        server.reload()
+        return "Updated to $filename"
+    }
 
 
     @Override protected void finalize() {
