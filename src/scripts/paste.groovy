@@ -2,11 +2,10 @@ import org.bukkit.block.*
 import org.bukkit.material.*
 import org.bukkit.Material
 
+def planName = args ? args[0] : me.name
 
-//def plan = load(args[0])
-
-def plan = new File(g.plugin.tempFolder, args[0]).text
-if (!plan) return "Unable to load ${args[0]}"
+def plan = new File(g.plugin.tempFolder, planName).text
+if (!plan) return "Unable to load ${planName}"
 
 def heightOfs = args.length > 1 ? args[1].toInteger() : 0
 
@@ -17,17 +16,26 @@ def determineMaterial = { code ->
     result ? m(result) : null
 }
 
+def determineFace = { code -> code == 'v' ? fBck : code == '<' ? fLft : code == '>' ? fRgt : code == '^' ? fac : code == '!' ? BlockFace.DOWN : BlockFace.UP }
+
 def dataValueChar = ' abcdefghijklmno'
+
 def determineMaterialData = { mat, code ->
-    if (!code || code == ' ') return 0
     if (code.matches('[a-o]')) return dataValueChar.indexOf(code)
-    if (code in ['^', 'v', '<', '>']) {
-        def matData = mat.getNewData((byte) 0)
+    if (code in ['^', 'v', '<', '>', '!', ' ']) {
+        if (mat == Material.LEVER) {
+            def facing = determineFace(code)
+            println facing
+            def result = facing == BlockFace.SOUTH ? 0x1 : facing == BlockFace.NORTH ? 0x2 : facing == BlockFace.WEST ? 0x3 : facing == BlockFace.EAST ? 0x4 : 0x5
+            println result
+            return result
+        }
+        def matData = mat.getNewData((byte) 1)
         if (matData instanceof Directional) {
-            matData.facingDirection = code == 'v' ? fBck : code == '<' ? fLft : code == '>' ? fRgt : code == '^' ? fac : code == '^' ? BlockFace.DOWN : BlockFace.UP
+            matData.facingDirection = determineFace(code)
             return matData.data
         }
-        else if (matData instanceof Door) {
+        if (matData instanceof Door) {
             def corner = 0
             if (fac == BlockFace.WEST) corner = code == 'v' ? 0 : code == '<' ? 1 : code == '>' ? 3 : 2
             else if (fac == BlockFace.EAST) corner = code == 'v' ? 2 : code == '<' ? 3 : code == '>' ? 1 : 0
@@ -40,7 +48,7 @@ def determineMaterialData = { mat, code ->
 }
 
 def postProcess = []
-def postProcessMaterials = [Material.TORCH, Material.REDSTONE_TORCH_OFF, Material.REDSTONE_TORCH_ON]
+def postProcessMaterials = [Material.TORCH, Material.REDSTONE_TORCH_OFF, Material.REDSTONE_TORCH_ON, Material.PISTON_BASE, Material.PISTON_STICKY_BASE, Material.LEVER]
 def layers = plan.split('---')
 def layernum = 0
 def start = at + heightOfs
@@ -74,9 +82,7 @@ layers.each { layer ->
                             if (mat in postProcessMaterials) {
                                 postProcess << [cur, mat, matdata]
                             }
-                            else {
-                                cur.setTypeIdAndData(mat.id, (byte) matdata, false)
-                            }
+                            cur.setTypeIdAndData(mat.id, (byte) matdata, false)
                         }
                         cur += fRgt
                     }
@@ -86,13 +92,11 @@ layers.each { layer ->
     }
 }
 
+// redo these to make sure they attached properly
 future(10) {
     postProcess.each { blk, mat, matdata ->
-        blk.setTypeIdAndData(mat.id, (byte) matdata, false)
-        blk.state.with {
-            data = mat.getNewData((byte)matdata)
-            update()
-        }
+        blk.setTypeIdAndData(mat.id, (byte) matdata, true)
+        if (mat == Material.REDSTONE_TORCH_ON) (blk+1).state.update()
     }
 }
 

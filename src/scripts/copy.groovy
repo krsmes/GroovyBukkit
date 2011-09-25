@@ -3,6 +3,7 @@ import org.bukkit.material.Directional
 import org.bukkit.block.BlockFace
 
 def (depth, height, width, filename) = args.toList()
+if (!filename) filename = me.name
 
 def dRange = (depth < 0) ? (-2..depth - 1) : (0..depth - 1)
 def hRange = (height instanceof Range) ? height : (height < 0) ? (0..(height + 1)) : (1..height)
@@ -13,7 +14,7 @@ def dataValueDirChar = { facing ->
     facing == fRgt ? '>' : facing == fLft ? '<' : facing == fBck ? 'v' : facing == fac ? '^' : facing == BlockFace.DOWN ? '!' : ' '
 }
 def encodeBlock = { Block block ->
-    if (block.typeId) {
+    if (block.typeId && block.typeId != 0x22) {
         def dataChar = (block.state.data instanceof Directional) ? dataValueDirChar(block.state.data.facing) : dataValueChar[block.data]
         String.format('%02X%s', block.typeId, dataChar)
     }
