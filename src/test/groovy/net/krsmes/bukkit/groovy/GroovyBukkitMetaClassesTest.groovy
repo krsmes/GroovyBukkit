@@ -11,6 +11,8 @@ class GroovyBukkitMetaClassesTest {
 
     @Before
     void enable() {
+        // added this assert so that minecraft.server gets initialized in the proper order
+        assert net.minecraft.server.AchievementList.f
         GroovyBukkitMetaClasses.enable()
     }
 
