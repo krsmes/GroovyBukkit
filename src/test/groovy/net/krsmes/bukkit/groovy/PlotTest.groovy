@@ -47,6 +47,7 @@ class PlotTest {
         expectCancelled(true)  { plot.setUnbreakable([1] as Set) }
         expectCancelled(false) { plot.setBreakable([1] as Set) }
         expectCancelled(false) { plot.removeVisitor('krsmes') }
+        expectCancelled(false) {  }
         expectCancelled(true)  { plot.setBreakable([] as Set) }
     }
 
@@ -71,6 +72,7 @@ class PlotTest {
         expectCancelled(true)  { plot.setUninteractable([1] as Set) }
         expectCancelled(false) { plot.setInteractable([1] as Set) }
         expectCancelled(false) { plot.removeVisitor('krsmes') }
+        expectCancelled(false) {  }
         expectCancelled(true)  { plot.setInteractable([] as Set) }
     }
 

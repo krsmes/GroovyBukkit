@@ -39,7 +39,7 @@ Scripts in scripts/startup/ run automatically at server startup (and reload).
 A properly configured setup will look something like:
 
     craftbukkit.jar
-    groovy-all-1.8.2.jar
+    groovy-all-1.8.4.jar
     plugins/
         GroovyBukkit.jar
         GroovyBukkit/
@@ -62,9 +62,9 @@ Running
 Groovy will have to be added to the classpath for running craftbukkit/mineserver:
 
     Mac/Linux:
-	java -Xmx1g -cp groovy-all-1.8.2.jar:craftbukkit.jar org.bukkit.craftbukkit.Main nogui
+	java -Xmx1g -cp groovy-all-1.8.4.jar:craftbukkit.jar org.bukkit.craftbukkit.Main nogui
     Windows:
-	java -Xmx1g -cp groovy-all-1.8.2.jar;craftbukkit.jar org.bukkit.craftbukkit.Main nogui
+	java -Xmx1g -cp groovy-all-1.8.4.jar;craftbukkit.jar org.bukkit.craftbukkit.Main nogui
 
 (Creating a start.sh/start.bat script is recommended)
 
@@ -72,7 +72,7 @@ At start up an info message should be displayed:
 
     [INFO]
     [INFO] Registered 'GroovyPlugin' with X listener(s): [...]
-	[INFO] Groovy Plugin 0.6.x enabled
+	[INFO] Groovy Plugin 0.7.x enabled
 
 
 Using
