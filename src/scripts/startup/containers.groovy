@@ -95,7 +95,7 @@ reg('captureItem') { GroovyRunner r, Block blk ->
 
 
 [
-    (Event.Type.BLOCK_PLACE): { GroovyRunner r, BlockPlaceEvent e ->
+    (BlockPlaceEvent): { GroovyRunner r, BlockPlaceEvent e ->
         def block = e.block
         if (block.state instanceof Sign && e.player.sneaking) {
             block.state.setLine(0, e.player.name)
@@ -106,7 +106,7 @@ reg('captureItem') { GroovyRunner r, Block blk ->
         }
     },
 
-    (Event.Type.PLAYER_INTERACT): { PlayerInteractEvent e ->
+    (PlayerInteractEvent): { PlayerInteractEvent e ->
         if (e.item?.type == Material.SIGN && e.player.sneaking) {
             e.useInteractedBlock = Result.DENY
             e.useItemInHand = Result.ALLOW
@@ -118,7 +118,7 @@ reg('captureItem') { GroovyRunner r, Block blk ->
         }
     },
 
-    (Event.Type.BLOCK_DAMAGE): { GroovyRunner r, BlockDamageEvent e ->
+    (BlockDamageEvent): { GroovyRunner r, BlockDamageEvent e ->
         def block = e.block
         if (block.state instanceof ContainerBlock) {
             // don't allow containers with attached signs to be destroyed except by player on sign
@@ -136,7 +136,7 @@ reg('captureItem') { GroovyRunner r, Block blk ->
         }
     },
 
-    (Event.Type.BLOCK_DISPENSE): { GroovyRunner r, BlockDispenseEvent e ->
+    (BlockDispenseEvent): { GroovyRunner r, BlockDispenseEvent e ->
         def block = e.block
         def sign = block.findAttached { it.type == Material.WALL_SIGN }
         if (sign) {
@@ -149,7 +149,7 @@ reg('captureItem') { GroovyRunner r, Block blk ->
         }
     },
 
-    (Event.Type.ITEM_SPAWN): { GroovyRunner r, ItemSpawnEvent e ->
+    (ItemSpawnEvent): { GroovyRunner r, ItemSpawnEvent e ->
         def ent = e.entity
         r.future 5, {
             ent.location.findBlock(1) { it.type == Material.CHEST }?.with {

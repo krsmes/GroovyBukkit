@@ -61,7 +61,7 @@ def targetInfo(Player player, Block target) {
 
 
 [
-    (Event.Type.PLAYER_INTERACT): { GroovyRunner r, PlayerInteractEvent e ->
+    (PlayerInteractEvent): { GroovyRunner r, PlayerInteractEvent e ->
         if (e.item?.type == Material.COMPASS) {
             if (e.action == Action.LEFT_CLICK_AIR || e.action == Action.LEFT_CLICK_BLOCK) {
                 def p = e.player

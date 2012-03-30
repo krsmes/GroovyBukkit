@@ -9,6 +9,7 @@ import org.bukkit.entity.Entity
 import org.bukkit.plugin.Plugin
 import org.bukkit.block.Block
 import org.bukkit.Material
+import org.bukkit.entity.LivingEntity
 
 class BukkitFixtures {
 
@@ -82,7 +83,7 @@ class BukkitFixtures {
     }
 
 
-    static <T extends Entity> T makeEntity(Class<T> type = Entity, Map attributes = [:]) {
+    static <T extends Entity> T makeEntity(Class<T> type = LivingEntity, Map attributes = [:]) {
         makeObject(type, attributes, [
             getLastDamageCause: {-> self.lastDamageCause },
             setLastDamageCause: { self.lastDamageCause = it }

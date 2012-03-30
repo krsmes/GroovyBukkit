@@ -5,16 +5,15 @@ import groovy.util.Eval;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
-import org.bukkit.event.Listener;
+import org.bukkit.event.*;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.plugin.EventExecutor;
+import org.bukkit.event.world.WorldSaveEvent;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.util.config.Configuration;
+import org.bukkit.configuration.Configuration;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -23,7 +22,7 @@ import java.util.*;
 import java.util.logging.Logger;
 
 
-public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener {
+public class GroovyPlugin extends JavaPlugin implements Listener {
     static Logger LOG = Logger.getLogger("Minecraft");
 
     public static final String NAME = "GroovyBukkit";
@@ -135,7 +134,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
         enabled = false;
         try {
             // save all data
-            onSave();
+            onSave(null);
 
             Plots.disable();
             Events.disable();
@@ -193,24 +192,6 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
         }
         return false;
     }
-
-
-//
-// EventExecutor
-//
-
-    public void execute(Listener listener, Event event) {
-        if (enabled) {
-            switch (event.getType()) {
-                case PLAYER_COMMAND_PREPROCESS: onCommandPreprocess((PlayerCommandPreprocessEvent) event); break;
-                case PLAYER_LOGIN: onLogin((PlayerLoginEvent) event); break;
-                case PLAYER_JOIN: onJoin((PlayerJoinEvent) event); break;
-                case PLAYER_QUIT: onQuit((PlayerQuitEvent) event); break;
-                case WORLD_SAVE: onSave(); break;
-            }
-        }
-    }
-
 
 
 //
@@ -285,11 +266,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     protected void registerEventHandlers() {
         if (!registered) {
             PluginManager mgr = getServer().getPluginManager();
-            mgr.registerEvent(Event.Type.PLAYER_COMMAND_PREPROCESS, this, this, Event.Priority.Low, this);
-            mgr.registerEvent(Event.Type.PLAYER_LOGIN, this, this, Event.Priority.Lowest, this);
-            mgr.registerEvent(Event.Type.PLAYER_JOIN, this, this, Event.Priority.Low, this);
-            mgr.registerEvent(Event.Type.PLAYER_QUIT, this, this, Event.Priority.Highest, this);
-            mgr.registerEvent(Event.Type.WORLD_SAVE, this, this, Event.Priority.Normal, this);
+            mgr.registerEvents(this, this);
             registered = true;
         }
     }
@@ -364,33 +341,35 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
 
     public void onLoad() {
         LOG.info(getDescription().getName() + ' ' + getDescription().getVersion() + " loading");
-        Configuration config = getConfiguration();
-        hiddenPlayers = config.getStringList("hidden-players", Collections.EMPTY_LIST);
+        Configuration config = getConfig();
+        hiddenPlayers = config.getStringList("hidden-players");
     }
 
-    /* WORLD_SAVE */
-    protected void onSave() {
+
+
+    @EventHandler
+    protected void onSave(WorldSaveEvent e) {
         LOG.info(getDescription().getName() + ' ' + getDescription().getVersion() + " saving");
-        try { getConfiguration().save(); } catch (Exception e) { LOG.warning("GroovyBukkit onSave() config failed: " + e.getMessage()); }
+        try { saveConfig(); } catch (Exception ex) { LOG.warning("GroovyBukkit onSave() config failed: " + ex.getMessage()); }
         Map<String, Object> data = savableData(global);
         ListenerClosures.instance.save(data);
         BlockClosures.instance.save(data);
         Events.instance.save(data);
         Plots.instance.save(data);
-        try { saveData(data); } catch (Exception e) { LOG.warning("GroovyBukkit onSave() global failed: " + e.getMessage()); }
+        try { saveData(data); } catch (Exception ex) { LOG.warning("GroovyBukkit onSave() global failed: " + ex.getMessage()); }
         for (GroovyRunner r : playerRunners.values()) {
-            try { saveData(r);  } catch (Exception e) { LOG.warning("GroovyBukkit onSave() " + r.getPlayer() + " failed: " + e.getMessage()); }
+            try { saveData(r);  } catch (Exception ex) { LOG.warning("GroovyBukkit onSave() " + r.getPlayer() + " failed: " + ex.getMessage()); }
         }
     }
 
 
-    /* PLAYER_LOGIN */
+    @EventHandler(priority = EventPriority.LOWEST)
     protected void onLogin(PlayerLoginEvent e) {
         initializePlayer(e.getPlayer());
     }
 
 
-    /* PLAYER_JOIN */
+    @EventHandler(priority = EventPriority.LOW)
     protected void onJoin(PlayerJoinEvent e) {
         Player player = e.getPlayer();
         if (hiddenPlayers.contains(player.getName())) { e.setJoinMessage(null); }
@@ -399,7 +378,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     }
 
 
-    /* PLAYER_QUIT */
+    @EventHandler(priority = EventPriority.HIGHEST)
     protected void onQuit(PlayerQuitEvent e) {
         Player player = e.getPlayer();
         if (hiddenPlayers.contains(player.getName())) { e.setQuitMessage(null); }
@@ -407,7 +386,7 @@ public class GroovyPlugin extends JavaPlugin implements EventExecutor, Listener 
     }
 
 
-    /* PLAYER_COMMAND_PREPROCESS */
+    @EventHandler(priority = EventPriority.LOW)
     protected void onCommandPreprocess(PlayerCommandPreprocessEvent e) {
         List<String> cmdsplit = Arrays.asList(e.getMessage().split(" "));
         String cmd = cmdsplit.get(0).substring(1);

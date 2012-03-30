@@ -151,14 +151,14 @@ command 'warp-public', { GroovyRunner r, List args ->
 
 
 [
-    (Event.Type.PLAYER_JOIN): { r, PlayerJoinEvent e ->
+    (PlayerJoinEvent): { GroovyRunner r, PlayerJoinEvent e ->
         if (r.permitted('warp')) {
             r.player.sendMessage "You have warp permissions, see '/warp help'"
         }
     },
 
     // right click on signs that have first line 'warp', second line is the name of the warp
-    (Event.Type.PLAYER_INTERACT): { r, PlayerInteractEvent it ->
+    (PlayerInteractEvent): { GroovyRunner r, PlayerInteractEvent it ->
         def clicked = it.clickedBlock
         if (clicked) {
             if (clicked.type == Material.WALL_SIGN || clicked.type == Material.SIGN_POST) {

@@ -338,7 +338,7 @@ command 'plot-max', { GroovyRunner r, List args ->
 
 
 [
-    (Event.Type.PLAYER_JOIN): { GroovyRunner r, PlayerJoinEvent e ->
+    (PlayerJoinEvent): { GroovyRunner r, PlayerJoinEvent e ->
         if (r.plots().plotProtection) {
             r.player.sendMessage "This server has plot protection, see '/plot help'"
         }

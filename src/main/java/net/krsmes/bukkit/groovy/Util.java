@@ -66,14 +66,14 @@ public class Util {
 
 
     public static void eachAttached(Block block, Closure closure) {
-        for (BlockFace face : ACTUAL_FACES) { closure.call(block.getFace(face)); }
+        for (BlockFace face : ACTUAL_FACES) { closure.call(block.getRelative(face)); }
     }
 
 
     public static List collectAttached(Block block, Closure closure) {
         List resultList = new ArrayList();
         for (BlockFace face : ACTUAL_FACES) {
-            Object result = closure.call(block.getFace(face));
+            Object result = closure.call(block.getRelative(face));
             if (result != null) {
                 resultList.add(result);
             }
@@ -84,7 +84,7 @@ public class Util {
 
     public static Block findAttached(Block block, Closure closure) {
         for (BlockFace face : ACTUAL_FACES) {
-            Block b = block.getFace(face);
+            Block b = block.getRelative(face);
             if ((Boolean) Eval.xy(closure, b, "!!x(y)")) {
                 return b;
             }
@@ -96,7 +96,7 @@ public class Util {
     public static List<Block> findAllAttached(Block block, Closure closure) {
         List<Block> resultList = new ArrayList<Block>();
         for (BlockFace face : ACTUAL_FACES) {
-            Block b = block.getFace(face);
+            Block b = block.getRelative(face);
             if ((Boolean) Eval.xy(closure, b, "!!x(y)")) {
                 resultList.add(b);
             }

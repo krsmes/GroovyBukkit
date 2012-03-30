@@ -10,6 +10,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockDamageEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
@@ -17,10 +18,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.ExplosionPrimeEvent;
-import org.bukkit.event.player.PlayerChatEvent;
-import org.bukkit.event.player.PlayerGameModeChangeEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.event.weather.LightningStrikeEvent;
 import org.bukkit.plugin.EventExecutor;
 import org.bukkit.plugin.Plugin;
@@ -102,92 +100,89 @@ public class Plots implements EventExecutor, Listener {
             Player player;
             Map<String, Object> playerData;
             Plot current;
-            switch (event.getType()) {
-                case PLAYER_MOVE:
-                case PLAYER_TELEPORT:
-                    PlayerMoveEvent pme = (PlayerMoveEvent) event;
-                    player = pme.getPlayer();
-                    playerData = ((GroovyPlugin) plugin).getData(player);
-                    processEvent(playerData, pme);
-                    break;
+            if (event instanceof PlayerMoveEvent) {
+                PlayerMoveEvent pme = (PlayerMoveEvent) event;
+                player = pme.getPlayer();
+                playerData = ((GroovyPlugin) plugin).getData(player);
+                processEvent(playerData, pme);
+            }
 
-                case BLOCK_DAMAGE:
-                    BlockDamageEvent bde = (BlockDamageEvent) event;
-                    player = bde.getPlayer();
-                    playerData = ((GroovyPlugin) plugin).getData(player);
-                    current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
-                    processEvent(current, bde);
-                    break;
+            else if (event instanceof BlockDamageEvent) {
+                BlockDamageEvent bde = (BlockDamageEvent) event;
+                player = bde.getPlayer();
+                playerData = ((GroovyPlugin) plugin).getData(player);
+                current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
+                processEvent(current, bde);
+            }
 
-                case PLAYER_INTERACT:
-                    PlayerInteractEvent pie = (PlayerInteractEvent) event;
-                    player = pie.getPlayer();
-                    playerData = ((GroovyPlugin) plugin).getData(player);
-                    current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
-                    processEvent(current, pie);
-                    break;
+            else if (event instanceof PlayerInteractEvent) {
+                PlayerInteractEvent pie = (PlayerInteractEvent) event;
+                player = pie.getPlayer();
+                playerData = ((GroovyPlugin) plugin).getData(player);
+                current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
+                processEvent(current, pie);
+            }
 
-                case PLAYER_GAME_MODE_CHANGE:
-                    PlayerGameModeChangeEvent pgmce = (PlayerGameModeChangeEvent) event;
-                    player = pgmce.getPlayer();
-                    playerData = ((GroovyPlugin) plugin).getData(player);
-                    current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
-                    if (current != null && current.isNoCreative() && pgmce.getNewGameMode() == GameMode.CREATIVE) {
-                        pgmce.setCancelled(true);
-                    }
-                    break;
+            else if (event instanceof PlayerGameModeChangeEvent) {
+                PlayerGameModeChangeEvent pgmce = (PlayerGameModeChangeEvent) event;
+                player = pgmce.getPlayer();
+                playerData = ((GroovyPlugin) plugin).getData(player);
+                current = playerData == null ? null : (Plot) playerData.get(ATTR_PLOT);
+                if (current != null && current.isNoCreative() && pgmce.getNewGameMode() == GameMode.CREATIVE) {
+                    pgmce.setCancelled(true);
+                }
+            }
 
-                case EXPLOSION_PRIME:
-                    ExplosionPrimeEvent epe = (ExplosionPrimeEvent) event;
-                    current = findPlot(epe.getEntity());
-                    epe.setCancelled(current.isNoExplode());
-                    if (current.isNoIgnite()) { epe.setFire(false); }
-                    break;
+            else if (event instanceof ExplosionPrimeEvent) {
+                ExplosionPrimeEvent epe = (ExplosionPrimeEvent) event;
+                current = findPlot(epe.getEntity());
+                epe.setCancelled(current.isNoExplode());
+                if (current.isNoIgnite()) { epe.setFire(false); }
+            }
 
-                case CREATURE_SPAWN:
-                    CreatureSpawnEvent cse = (CreatureSpawnEvent) event;
-                    if (cse.getSpawnReason() == CreatureSpawnEvent.SpawnReason.NATURAL) {
-                        current = findPlot(cse.getLocation());
-                        cse.setCancelled(current.isNoSpawn());
-                    }
-                    break;
+            else if (event instanceof CreatureSpawnEvent) {
+                CreatureSpawnEvent cse = (CreatureSpawnEvent) event;
+                if (cse.getSpawnReason() == CreatureSpawnEvent.SpawnReason.NATURAL) {
+                    current = findPlot(cse.getLocation());
+                    cse.setCancelled(current.isNoSpawn());
+                }
+            }
 
-                case ENTITY_TARGET:
-                    EntityTargetEvent ete = (EntityTargetEvent) event;
-                    player = ete.getTarget() instanceof Player ? (Player) ete.getTarget() : null;
-                    if (player != null) {
-                        current = findPlot(player);
-                        ete.setCancelled(current.isNoTarget() && current.allowed(player));
-                    }
-                    break;
-
-                case PLAYER_CHAT:
-                    PlayerChatEvent pce = (PlayerChatEvent) event;
-                    player = pce.getPlayer();
+            else if (event instanceof EntityTargetEvent) {
+                EntityTargetEvent ete = (EntityTargetEvent) event;
+                player = ete.getTarget() instanceof Player ? (Player) ete.getTarget() : null;
+                if (player != null) {
                     current = findPlot(player);
-                    pce.setCancelled(current.isNoChat());
-                    break;
+                    ete.setCancelled(current.isNoTarget() && current.allowed(player));
+                }
+            }
 
-                case LIGHTNING_STRIKE:
-                    LightningStrikeEvent lse = (LightningStrikeEvent) event;
-                    current = findPlot(lse.getLightning());
-                    lse.setCancelled(current.isNoLightning());
-                    break;
+            else if (event instanceof PlayerChatEvent) {
+                PlayerChatEvent pce = (PlayerChatEvent) event;
+                player = pce.getPlayer();
+                current = findPlot(player);
+                pce.setCancelled(current.isNoChat());
+            }
 
-                case BLOCK_IGNITE:
-                    BlockIgniteEvent bie = (BlockIgniteEvent) event;
-                    current = findPlot(bie.getBlock().getLocation());
-                    bie.setCancelled(current.isNoIgnite());
-                    break;
+            else if (event instanceof LightningStrikeEvent) {
+                LightningStrikeEvent lse = (LightningStrikeEvent) event;
+                current = findPlot(lse.getLightning());
+                lse.setCancelled(current.isNoLightning());
+            }
 
-                case ENTITY_DAMAGE:
-                    EntityDamageEvent ede = (EntityDamageEvent) event;
-                    player = ede.getEntity() instanceof Player ? (Player) ede.getEntity() : null;
-                    if (player != null) {
-                        current = findPlot(player);
-                        ede.setCancelled(current.isNoDamage() && current.allowed(player));
-                    }
-                    break;
+            else if (event instanceof BlockIgniteEvent) {
+                BlockIgniteEvent bie = (BlockIgniteEvent) event;
+                current = findPlot(bie.getBlock().getLocation());
+                bie.setCancelled(current.isNoIgnite());
+            }
+
+            else if (event instanceof EntityDamageEvent) {
+                EntityDamageEvent ede = (EntityDamageEvent) event;
+                player = ede.getEntity() instanceof Player ? (Player) ede.getEntity() : null;
+                if (player != null) {
+                    current = findPlot(player);
+                    ede.setCancelled(current.isNoDamage() && current.allowed(player));
+                }
             }
         }
     }
@@ -291,19 +286,19 @@ public class Plots implements EventExecutor, Listener {
     protected void register() {
         log.info("Plots: registering");
         PluginManager mgr = plugin.getServer().getPluginManager();
-        mgr.registerEvent(Event.Type.PLAYER_MOVE, this, this, Event.Priority.Low, plugin);
-        mgr.registerEvent(Event.Type.PLAYER_TELEPORT, this, this, Event.Priority.Low, plugin);
-        mgr.registerEvent(Event.Type.BLOCK_DAMAGE, this, this, Event.Priority.Lowest, plugin);
-        mgr.registerEvent(Event.Type.PLAYER_INTERACT, this, this, Event.Priority.Lowest, plugin);
-        mgr.registerEvent(Event.Type.PLAYER_GAME_MODE_CHANGE, this, this, Event.Priority.Lowest, plugin);
+        mgr.registerEvent(PlayerMoveEvent.class, this, EventPriority.LOW, this, plugin);
+        mgr.registerEvent(PlayerTeleportEvent.class, this, EventPriority.LOW, this, plugin);
+        mgr.registerEvent(BlockDamageEvent.class, this, EventPriority.LOWEST, this, plugin);
+        mgr.registerEvent(PlayerInteractEvent.class, this, EventPriority.LOWEST, this, plugin);
+        mgr.registerEvent(PlayerGameModeChangeEvent.class, this, EventPriority.LOWEST, this, plugin);
 
-        mgr.registerEvent(Event.Type.EXPLOSION_PRIME, this, this, Event.Priority.Lowest, plugin);
-        mgr.registerEvent(Event.Type.CREATURE_SPAWN, this, this, Event.Priority.Lowest, plugin);
-        mgr.registerEvent(Event.Type.ENTITY_TARGET, this, this, Event.Priority.Lowest, plugin);
-        mgr.registerEvent(Event.Type.PLAYER_CHAT, this, this, Event.Priority.Lowest, plugin);
-        mgr.registerEvent(Event.Type.LIGHTNING_STRIKE, this, this, Event.Priority.Lowest, plugin);
-        mgr.registerEvent(Event.Type.BLOCK_IGNITE, this, this, Event.Priority.Lowest, plugin);
-        mgr.registerEvent(Event.Type.ENTITY_DAMAGE, this, this, Event.Priority.Lowest, plugin);
+        mgr.registerEvent(ExplosionPrimeEvent.class, this, EventPriority.LOWEST, this, plugin);
+        mgr.registerEvent(CreatureSpawnEvent.class, this, EventPriority.LOWEST, this, plugin);
+        mgr.registerEvent(EntityTargetEvent.class, this, EventPriority.LOWEST, this, plugin);
+        mgr.registerEvent(PlayerChatEvent.class, this, EventPriority.LOWEST, this, plugin);
+        mgr.registerEvent(LightningStrikeEvent.class, this, EventPriority.LOWEST, this, plugin);
+        mgr.registerEvent(BlockIgniteEvent.class, this, EventPriority.LOWEST, this, plugin);
+        mgr.registerEvent(EntityDamageEvent.class, this, EventPriority.LOWEST, this, plugin);
     }
 
 
@@ -335,7 +330,6 @@ public class Plots implements EventExecutor, Listener {
 
     protected void processEvent(Map<String, Object> playerData, PlayerMoveEvent e) {
         if (playerData != null) {
-            Event.Type type = e.getType();
             Location to = e.getTo();
             int toX = to.getBlockX();
             int toZ = to.getBlockZ();
@@ -343,12 +337,12 @@ public class Plots implements EventExecutor, Listener {
             int fromX = from.getBlockX();
             int fromZ = from.getBlockZ();
             // see if player moved off of block horizontally
-            if (toX != fromX || toZ != fromZ || type == Event.Type.PLAYER_TELEPORT) {
+            if (toX != fromX || toZ != fromZ || e instanceof PlayerTeleportEvent) {
                 Player player = e.getPlayer();
                 Plot currentPlot = playerData.containsKey(ATTR_PLOT) ? (Plot) playerData.get(ATTR_PLOT) : null;
                 // see if new location is in the same plot (faster than doing a full plot scan)
                 if (currentPlot != null && currentPlot.contains(toX, toZ)) {
-                    if (type == Event.Type.PLAYER_TELEPORT && currentPlot.isNoTeleport()) {
+                    if (e instanceof PlayerTeleportEvent && currentPlot.isNoTeleport()) {
                         // no teleporting within current plot
                         e.setCancelled(true);
                     }
@@ -357,7 +351,7 @@ public class Plots implements EventExecutor, Listener {
                     // where are we now?
                     Plot destinationPlot = findPlot(toX, toZ);
                     if (destinationPlot != currentPlot) {
-                        if (currentPlot != null && type == Event.Type.PLAYER_TELEPORT && currentPlot.isNoTeleport()) {
+                        if (currentPlot != null && e instanceof PlayerTeleportEvent && currentPlot.isNoTeleport()) {
                             // no teleporting out of current plot
                             e.setCancelled(true);
                         }
@@ -372,7 +366,7 @@ public class Plots implements EventExecutor, Listener {
                         else {
                             // plot change is not allowed...
                             e.setCancelled(true);
-                            if (type == Event.Type.PLAYER_MOVE) {
+                            if (!(e instanceof PlayerTeleportEvent)) {
                                 Util.teleport(plugin, player, from);
                             }
                         }

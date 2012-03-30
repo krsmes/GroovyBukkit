@@ -16,7 +16,8 @@ import org.bukkit.event.block.BlockIgniteEvent
 import org.bukkit.event.block.BlockIgniteEvent.IgniteCause
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause
-import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason
+import org.bukkit.entity.LivingEntity;
 
 /**
  * PlotsTest ...
@@ -28,7 +29,7 @@ public class PlotsTest {
 
     Plots plots
     Plot plot
-    Entity inPlotEntity
+    LivingEntity inPlotEntity
     Player inPlotOwner
     Player inPlotVisitor
     Player inPlotPlayer
@@ -41,7 +42,7 @@ public class PlotsTest {
         )
         plot = new Plot('testPlot', new Area(1, 5, 1, 5))
         plots.addPlot(plot)
-        inPlotEntity = BukkitFixtures.makeEntity(Entity, [location: BukkitFixtures.makeLocation(x: 1, y: 64, z: 1)])
+        inPlotEntity = BukkitFixtures.makeEntity(LivingEntity, [location: BukkitFixtures.makeLocation(x: 1, y: 64, z: 1)])
         inPlotOwner = BukkitFixtures.makePlayer([location: BukkitFixtures.makeLocation(x: 2, y: 64, z: 2)])
         plot.owner = inPlotOwner.name
         inPlotVisitor = BukkitFixtures.makePlayer([location: BukkitFixtures.makeLocation(x: 2, y: 64, z: 2)])
@@ -74,7 +75,7 @@ public class PlotsTest {
         // basic 'no' features
         [
             noExplode: new ExplosionPrimeEvent(inPlotEntity, 3.0, false),
-            noSpawn: new CreatureSpawnEvent(inPlotEntity, CreatureType.CHICKEN, BukkitFixtures.makeLocation(x:1,y:64,z:1), SpawnReason.NATURAL),
+            noSpawn: new CreatureSpawnEvent(inPlotEntity, SpawnReason.NATURAL),
             noTarget: new EntityTargetEvent(inPlotEntity, inPlotVisitor, TargetReason.CLOSEST_PLAYER),
             noChat: new PlayerChatEvent(inPlotVisitor, "hey you"),
             noLightning: new LightningStrikeEvent(BukkitFixtures.world,
@@ -82,6 +83,7 @@ public class PlotsTest {
             noIgnite: new BlockIgniteEvent(BukkitFixtures.makeBlock([x:1,y:63,z:1,typeId:1]), IgniteCause.FLINT_AND_STEEL, inPlotOwner),
             noDamage: new EntityDamageEvent(inPlotVisitor, DamageCause.ENTITY_ATTACK, 5)
         ].each { key, value ->
+            println key
             expectCancelled(false, value) { plot."$key" = false }
             expectCancelled(true, value) { plot."$key" = true }
         }

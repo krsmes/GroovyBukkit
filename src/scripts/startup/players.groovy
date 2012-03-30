@@ -162,7 +162,7 @@ command 'go', { GroovyRunner runner, List args ->
 
 
 [
-    (Event.Type.PLAYER_LOGIN): { PlayerLoginEvent e ->
+    (PlayerLoginEvent): { PlayerLoginEvent e ->
         getPlayerStats(e.player).with {
             if (!rank) rank = 0
             loginCount++
@@ -170,13 +170,13 @@ command 'go', { GroovyRunner runner, List args ->
         }
     },
 
-    (Event.Type.PLAYER_JOIN): { PlayerJoinEvent e ->
+    (PlayerJoinEvent): { PlayerJoinEvent e ->
         getPlayerStats(e.player).with {
             e.player.sendMessage "$loginCount logins, ${Math.round(totalOnlineTime / 60000)} minutes, $kickCount kicks, $respawnCount respawns, see '/stats'"
         }
     },
 
-    (Event.Type.PLAYER_QUIT): { PlayerQuitEvent e ->
+    (PlayerQuitEvent): { PlayerQuitEvent e ->
         def now = new Date()
         getPlayerStats(e.player).with {
             lastQuit = now
@@ -185,21 +185,21 @@ command 'go', { GroovyRunner runner, List args ->
         }
     },
 
-    (Event.Type.PLAYER_KICK): { PlayerKickEvent e ->
+    (PlayerKickEvent): { PlayerKickEvent e ->
         getPlayerStats(e.player).with {
             kickCount++
             lastKick = new Date()
         }
     },
 
-    (Event.Type.PLAYER_RESPAWN): { PlayerRespawnEvent e ->
+    (PlayerRespawnEvent): { PlayerRespawnEvent e ->
         getPlayerStats(e.player).with {
             respawnCount++
             lastRespawn = new Date()
         }
     },
 
-    (Event.Type.PLAYER_CHAT): { GroovyRunner r, PlayerChatEvent e ->
+    (PlayerChatEvent): { GroovyRunner r, PlayerChatEvent e ->
         getPlayerStats(e.player).with {
             chatCount++
             lastChat = new Date()

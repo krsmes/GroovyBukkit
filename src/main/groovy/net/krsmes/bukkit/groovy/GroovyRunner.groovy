@@ -8,7 +8,7 @@ import java.util.zip.ZipFile
 class GroovyRunner extends GroovyAPI {
 
 	static SCRIPT_PREFIX = """
-import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import org.bukkit.event.*;import org.bukkit.inventory.*;import org.bukkit.material.*;import org.bukkit.util.*;
+import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import org.bukkit.inventory.*;import org.bukkit.material.*;import org.bukkit.potion.*;import org.bukkit.util.*;
 """
 
     GroovyPlugin plugin
@@ -192,15 +192,13 @@ import org.bukkit.*;import org.bukkit.block.*;import org.bukkit.entity.*;import 
         typedClosureMap.each { def type, closure ->
             def eventType
             try {
-                eventType = (type instanceof Event.Type) ? type : Event.Type.valueOf(stringToType(type))
+                eventType = (type instanceof Class) ? type : Class.forName("org.bukkit.event.${eventType}Event")
             }
             catch (e) {
-                eventType = Event.Type.CUSTOM_EVENT
+                eventType = null
             }
-            if (closure instanceof Closure) {
-                eventType == Event.Type.CUSTOM_EVENT ?
-                    ListenerClosures.instance.register(uniqueName, type.toString().toUpperCase(), closure) :
-                    ListenerClosures.instance.register(uniqueName, eventType, closure)
+            if (closure instanceof Closure && eventType) {
+                ListenerClosures.instance.register(uniqueName, eventType, closure)
             }
         }
         listeners << uniqueName

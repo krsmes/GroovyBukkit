@@ -5,6 +5,7 @@ import groovy.lang.Closure;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.player.PlayerEvent;
@@ -87,23 +88,10 @@ public class ListenerClosures implements EventExecutor, Listener {
 // public methods
 //
 
-    public void register(String name, Event.Type type, Closure closure) {
+    public void register(String name, Class<? extends Event> type, Closure closure) {
         LOG.fine(plugin.getDescription().getName() + " registered '" + name + "' for event: " + type);
         List<Closure> namedListener = getOrCreateListeners(name);
-        List<Closure> registeredType = getOrCreateRegistered(type, type.toString());
-        if (!namedListener.contains(closure)) {
-            namedListener.add(closure);
-        }
-        if (!registeredType.contains(closure)) {
-            registeredType.add(closure);
-        }
-    }
-
-
-    public void register(String name, String eventName, Closure closure) {
-        LOG.fine(plugin.getDescription().getName() + " registered '" + name + "' for custom event: " + eventName);
-        List<Closure> namedListener = getOrCreateListeners(name);
-        List<Closure> registeredType = getOrCreateRegistered(Event.Type.CUSTOM_EVENT, eventName);
+        List<Closure> registeredType = getOrCreateRegistered(type, type.getSimpleName());
         if (!namedListener.contains(closure)) {
             namedListener.add(closure);
         }
@@ -140,12 +128,12 @@ public class ListenerClosures implements EventExecutor, Listener {
     }
 
 
-    protected List<Closure> getOrCreateRegistered(Event.Type type, String eventName) {
+    protected List<Closure> getOrCreateRegistered(Class<? extends Event> type, String eventName) {
         List<Closure> result = registered.get(eventName);
         if (result == null) {
             result = new ArrayList<Closure>();
             registered.put(eventName, result);
-            plugin.getServer().getPluginManager().registerEvent(type, this, this, Event.Priority.Normal, plugin);
+            plugin.getServer().getPluginManager().registerEvent(type, this, EventPriority.NORMAL, this, plugin);
         }
         return result;
     }

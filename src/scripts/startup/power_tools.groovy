@@ -169,18 +169,18 @@ command 'ptools', { runner, args ->
 
 
 [
-    (Event.Type.PLAYER_JOIN): { runner, PlayerJoinEvent e ->
+    (PlayerJoinEvent): { runner, PlayerJoinEvent e ->
         if (runner.permitted('ptools')) {
             runner.player.sendMessage "You have PowerTools permissions, see '/ptools help'"
         }
     },
 
-    (Event.Type.BLOCK_DAMAGE): { runner, BlockDamageEvent e ->
+    (BlockDamageEvent): { runner, BlockDamageEvent e ->
         if (!runner.data.powertools || e.cancelled) return
         if (runner.player.itemInHand.type == Material.STICK) e.cancelled = true
     },
 
-    (Event.Type.PLAYER_INTERACT): { runner, PlayerInteractEvent e ->
+    (PlayerInteractEvent): { runner, PlayerInteractEvent e ->
 //        println "powertools(${runner.data.powertools ? 'ON' : 'OFF'}): $e.eventName ($e.player.name): item=$e.item, action=$e.action, clickedBlock=$e.clickedBlock, blockFace=$e.blockFace, useBlock=${e.useInteractedBlock()}"
 
         if (!runner.data.powertools || (e.clickedBlock && e.clickedBlock.type in PowerToolsConst.IGNORED_BLOCK_TYPES)) {
