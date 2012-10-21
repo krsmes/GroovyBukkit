@@ -11,10 +11,10 @@
 
 	<repositories>
 		<!-- specify where to find bukkit artifacts -->
-		<repository>
-			<id>bukkut-repo</id>
-			<url>http://artifacts.lukegb.com/artifactory/repo</url>
-		</repository>
+    <repository>
+      <id>repobo-snap</id>
+      <url>http://repo.bukkit.org/content/groups/public</url>
+    </repository>
 		<!-- specify where to find groovy artifacts -->
 		<repository>
 			<id>codehaus.org</id>
